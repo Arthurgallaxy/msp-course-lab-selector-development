@@ -930,7 +930,7 @@
             flex: 1
         }
 
-        .abdy strong {
+        .abdy > strong {
             display: block;
             font-weight: 600;
             font-size: 13px;
@@ -3867,8 +3867,8 @@
     // GLOBAL STATE
     // ═══════════════════════════════════════════════════
 
-    //THIS VERSION SHOULD BE CHANGED ON EVERYUPDATE (to the same as the version.json file) OR IT WILL CAUSE PERMENANT UPDATE POPUPS
-    const APP_VERSION = '4.1.8'
+    //THIS VERSION SHOULD BE CHANGED ON EVERYUPDATE (to the same as the version.json file) OR IT WILL CAUSE PERMANENT UPDATE POPUPS
+    const APP_VERSION = '4.1.9'
     const DATA_BASE = './data/';
     const updateurl = 'https://raw.githubusercontent.com/Arthurgallaxy/msp-course-lab-selector-development/main/MSP%20Course%20Planner%20V4/version.json';
 
@@ -3923,6 +3923,7 @@
         return `mailto:${emailTo}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
     }
 
+    //this is the URL for the repository as a whole (INSIDE THE PLANNER V4 FOLDER), change this whenever changing the github repo this app is based on
     const RAW_BASE = 'https://raw.githubusercontent.com/Arthurgallaxy/msp-course-lab-selector-development/main/MSP%20Course%20Planner%20V4/';
 
     const DATA_PATHS = {
@@ -4182,6 +4183,10 @@
         P4: {A: emptyPlan(), B: emptyPlan(), C: emptyPlan()},
         P5: {A: emptyPlan(), B: emptyPlan(), C: emptyPlan()}
     };
+    //user data saving keys
+    const PLANNER_STATE_KEY = 'msp-planner-state-v1';
+    const PLANNER_STATE_VERSION = 1;
+
     let PLANS = ALL_PLANS.P5;
     let act = 'A', cmpMode = false;
     let activeView = 'dashboard';
@@ -4192,6 +4197,125 @@
         config: null,
         transcript: null
     };
+
+    //functions for saving user data
+    function savePlannerState() {
+        if (plannerStateReadOnly) return;
+
+        try {
+            const state = {
+                schemaVersion: PLANNER_STATE_VERSION,
+                currentPeriod,
+                activePlan: act,
+                plans: plansForStorage()
+            };
+
+            localStorage.setItem(
+                PLANNER_STATE_KEY,
+                JSON.stringify(state)
+            );
+        } catch (err) {
+            console.warn('Could not save planner state:', err);
+        }
+    }
+
+    let plannerSaveTimer = null;
+
+    function schedulePlannerStateSave() {
+        clearTimeout(plannerSaveTimer);
+
+        plannerSaveTimer = setTimeout(() => {
+            savePlannerState();
+        }, 150);
+    }
+
+    function planForStorage(plan) {
+        return {
+            customLoad: plan.customLoad,
+            courseCount: plan.courseCount,
+            skillCount: plan.skillCount,
+            courses: [...plan.courses],
+            skills: [...plan.skills],
+            externalCourses: JSON.parse(JSON.stringify(plan.externalCourses)),
+            bundle: plan.bundle
+        };
+    }
+
+    function plansForStorage() {
+        const result = {};
+
+        for (const period of ['P1', 'P2', 'P4', 'P5']) {
+            result[period] = {};
+
+            for (const planKey of ['A', 'B', 'C']) {
+                result[period][planKey] =
+                    planForStorage(ALL_PLANS[period][planKey]);
+            }
+        }
+
+        return result;
+    }
+
+    // function to load user data
+    let plannerStateReadOnly = false;
+
+    function loadPlannerState() {
+        try {
+            const raw = localStorage.getItem(PLANNER_STATE_KEY);
+            if (!raw) return null;
+
+            const saved = JSON.parse(raw);
+
+            if (!saved || typeof saved !== 'object' || !saved.plans) {
+                return null;
+            }
+
+            // Saved states created before schemaVersion existed are treated as v1.
+            const savedVersion = Number(saved.schemaVersion ?? 1);
+
+            // If this state was created by a newer app version, do not load it and do NOT overwrite it.
+            if (savedVersion > PLANNER_STATE_VERSION) {
+                console.warn(
+                    `Saved planner state uses schema version ${savedVersion}, ` +
+                    `but this app only supports version ${PLANNER_STATE_VERSION}.`
+                );
+
+                plannerStateReadOnly = true;
+                return null;
+            }
+
+            const periods = ['P1', 'P2', 'P4', 'P5'];
+            const planKeys = ['A', 'B', 'C'];
+
+            for (const period of periods) {
+                const savedPeriod = saved.plans[period];
+                if (!savedPeriod || typeof savedPeriod !== 'object') continue;
+
+                for (const planKey of planKeys) {
+                    if (!savedPeriod[planKey]) continue;
+
+                    ALL_PLANS[period][planKey] =
+                        normalizePlan(savedPeriod[planKey]);
+                }
+            }
+
+            return {
+                currentPeriod:
+                    periods.includes(saved.currentPeriod)
+                        ? saved.currentPeriod
+                        : null,
+
+                activePlan:
+                    planKeys.includes(saved.activePlan)
+                        ? saved.activePlan
+                        : 'A'
+            };
+
+        } catch (err) {
+            console.warn('Could not restore planner state:', err);
+            return null;
+        }
+    }
 
     function selectedCourses() {
         const p = PLANS[act];
@@ -4261,6 +4385,7 @@
         if (p.customLoad) {
             controls.style.display = 'block';
             buildLoadDropdowns();
+            schedulePlannerStateSave();
             return;
         }
 
@@ -4309,6 +4434,7 @@
         buildTT();
         buildAdvicePanel();
         updateTabIcons();
+        schedulePlannerStateSave();
     }
 
     function syncCustomLoadToggle() {
@@ -4388,20 +4514,88 @@
         };
     }
 
-    function normalizePlan(p) {
-        if (!p) return emptyPlan();
+    function reconcilePlanWithCurrentData(plan) {
+        const validCourses = new Set(courses.map(c => c.Code));
+        const validSkills = new Set(labs.map(l => l.Code));
+        const validBundles = new Set(bundledItems.map(item => item.Bundle));
 
-        if (typeof p.customLoad !== 'boolean') {
-            p.customLoad = p.courseCount !== 2 || p.skillCount !== 1;
+        plan.courses = plan.courses.map((code, i) => {
+            if (!code) return '';
+
+            if (code === `__EXTERNAL_COURSE_${i}__`) {
+                return code;
+            }
+
+            return validCourses.has(code) ? code : '';
+        });
+
+        plan.skills = plan.skills.map(code =>
+            !code || validSkills.has(code) ? code : ''
+        );
+
+        if (plan.bundle && !validBundles.has(plan.bundle)) {
+            plan.bundle = '';
         }
 
-        if (!Array.isArray(p.courses)) p.courses = ['', '', '', '', ''];
-        if (!Array.isArray(p.skills)) p.skills = ['', '', '', '', ''];
-        if (!Array.isArray(p.externalCourses)) p.externalCourses = [{}, {}, {}, {}, {}];
-        if (!p.ack) p.ack = {};
-        if (p.bundle === undefined) p.bundle = '';
+        return plan;
+    }
 
-        return p;
+    function normalizePlan(p) {
+        if (!p || typeof p !== 'object' || Array.isArray(p)) {
+            return emptyPlan();
+        }
+
+        const result = emptyPlan();
+
+        result.customLoad =
+            typeof p.customLoad === 'boolean'
+                ? p.customLoad
+                : Number(p.courseCount) !== 2 || Number(p.skillCount) !== 1;
+
+        result.courseCount = Math.max(
+            0,
+            Math.min(4, Number.isInteger(Number(p.courseCount))
+                ? Number(p.courseCount)
+                : 2)
+        );
+
+        result.skillCount = Math.max(
+            0,
+            Math.min(5, Number.isInteger(Number(p.skillCount))
+                ? Number(p.skillCount)
+                : 1)
+        );
+
+        if (Array.isArray(p.courses)) {
+            result.courses = result.courses.map((_, i) =>
+                typeof p.courses[i] === 'string' ? p.courses[i] : ''
+            );
+        }
+
+        if (Array.isArray(p.skills)) {
+            result.skills = result.skills.map((_, i) =>
+                typeof p.skills[i] === 'string' ? p.skills[i] : ''
+            );
+        }
+
+        if (Array.isArray(p.externalCourses)) {
+            result.externalCourses = result.externalCourses.map((_, i) => {
+                const ext = p.externalCourses[i];
+
+                return ext && typeof ext === 'object' && !Array.isArray(ext)
+                    ? ext
+                    : {};
+            });
+        }
+
+        result.bundle =
+            typeof p.bundle === 'string'
+                ? p.bundle
+                : '';
+
+        result.ack = {};
+
+        return result;
     }
 
     function getStudentGPA(){
@@ -4531,6 +4725,8 @@
         trimPlanSelections();
         switchPlan(act);
         updateTabIcons();
+
+        schedulePlannerStateSave();
     }
 
     function changeLoadFromSkills() {
@@ -4547,6 +4743,8 @@
         trimPlanSelections();
         switchPlan(act);
         updateTabIcons();
+
+        schedulePlannerStateSave();
     }
 
     function trimPlanSelections() {
@@ -4554,6 +4752,10 @@
 
         for (let i = p.courseCount; i < p.courses.length; i++) {
             p.courses[i] = '';
+
+            if (Array.isArray(p.externalCourses)) {
+                p.externalCourses[i] = {};
+            }
         }
 
         for (let i = p.skillCount; i < p.skills.length; i++) {
@@ -5663,6 +5865,8 @@
         PLANS = ALL_PLANS[p] || {A: emptyPlan(), B: emptyPlan(), C: emptyPlan()};
         ALL_PLANS[p] = PLANS;
 
+        schedulePlannerStateSave();
+
         // Reset active plan tab to A
         act = "A";
         document.querySelectorAll(".ptab:not(.ptab-cmp)").forEach(t => t.classList.remove("active"));
@@ -5739,6 +5943,15 @@
             else labs.push(e);
         }
         reversePrereqIndex = buildReversePrereqIndex();
+
+        // Reconcile saved plans against the currently loaded academic data.
+        ['A', 'B', 'C'].forEach(k => {
+            PLANS[k] = reconcilePlanWithCurrentData(PLANS[k]);
+        });
+
+        // Keep ALL_PLANS pointing at the reconciled versions.
+        ALL_PLANS[currentPeriod] = PLANS;
+
         document.getElementById('mp').textContent = cfgP && cfgY ? `Period ${cfgP} \u00b7 ${cfgY}` : 'Schedule loaded';
         if (cfgV) {
             document.getElementById('mv').textContent = `v${cfgV}`;
@@ -5757,7 +5970,7 @@
             month: 'long',
             year: 'numeric'
         });
-        switchPlan('A');
+        switchPlan(act);
         showScreen('pl');
     }
 
@@ -5812,6 +6025,8 @@
         buildTT();
         buildAdvicePanel();
         updateTabIcons();
+
+        schedulePlannerStateSave();
     }
 
     function save() {
@@ -5837,6 +6052,7 @@
         }
 
         trimPlanSelections();
+        schedulePlannerStateSave();
     }
 
     // ═══════════════════════════════════════════════════
@@ -6142,6 +6358,8 @@
             slot: document.getElementById(`ext-slot-${index}`)?.value || 'EXT',
             days
         };
+
+        schedulePlannerStateSave();
     }
 
     function renderOtherExternalCourseForms(currentIndex) {
@@ -6266,6 +6484,8 @@
 
         switchPlan(act);
         updateTabIcons();
+
+        schedulePlannerStateSave();
     }
 
     function applyBundleMode() {
@@ -7247,7 +7467,7 @@
                         <span class="aico">✓</span>
                         <div class="abdy">
                             <strong>Typical entry prerequisite met</strong>
-                            <p><em>${entry.Code}</em> usually requires ${formatPrereqs(entry.PrerequisiteCodes)}. Verified from your transcript.</p>
+                            <p><em>${entry.Code}</em> usually requires ${formatPrereqs(entry.PrerequisiteCodes)} Verified from your transcript.</p>
                         </div>
                     </div>
                 `;
@@ -7556,7 +7776,7 @@
                         <span class="aico">✓</span>
                         <div class="abdy">
                             <strong>Prerequisites met</strong>
-                            <p><em>${item.Code} — ${item.Title}</em> requires ${formatPrereqs(item.PrerequisiteCodes)}. Verified from your transcript.</p>
+                            <p><em>${item.Code} — ${item.Title}</em> requires ${formatPrereqs(item.PrerequisiteCodes)} Verified from your transcript.</p>
                         </div>
                     </div>
                 `;
@@ -8803,6 +9023,7 @@
         PLANS[act] = emptyPlan();
         switchPlan(act);
         updateTabIcons();
+        schedulePlannerStateSave();
     }
 
     // Transcript upload
@@ -9113,6 +9334,11 @@
         parseMD(COURSE_DESCRIPTIONS_MD);
     }
 
+    window.addEventListener('pagehide', () => {
+        clearTimeout(plannerSaveTimer);
+        savePlannerState();
+    });
+
     // Load data from external files
     window.addEventListener('DOMContentLoaded', async () => {
         cacheRemoteImage(
@@ -9136,10 +9362,21 @@
         try {
             await loadDataFiles();
 
-            const wantedP = getDefaultPeriod();
-            const startP = DATA_PATHS.periods[wantedP] ? wantedP : 'P1';
+            const savedState = loadPlannerState();
+
+            const wantedP =
+                savedState?.currentPeriod ||
+                getDefaultPeriod();
+
+            const startP =
+                DATA_PATHS.periods[wantedP]
+                    ? wantedP
+                    : 'P1';
 
             currentPeriod = startP;
+            PLANS = ALL_PLANS[startP];
+
+            act = savedState?.activePlan || 'A';
 
             document.querySelectorAll('.pd-btn').forEach(b => {
                 b.classList.toggle('active', b.getAttribute('data-p') === startP);

@@ -1,9 +1,9 @@
 {
-  "latestVersion": "4.1.8",
-  "priority": "Critical",
+  "latestVersion": "4.1.9",
+  "priority": "medium",
   "title": "Update available",
-  "message": "changed auto-update system to include minimum supported version",
+  "message": "made user data save in local data (no longer have to repopulate course selections on every app launch",
   "downloadUrl": "https://github.com/Arthurgallaxy/msp-course-lab-selector-development/releases/latest",
   "changelogUrl": "https://github.com/Arthurgallaxy/msp-course-lab-selector-development/releases/latest",
-  "minimumSupportedVersion": "4.1.5"
+  "minimumSupportedVersion": "4.1.8"
 }

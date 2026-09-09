@@ -3527,12 +3527,250 @@
             border: 3px solid #f97316;
         }
         .or {
-    display: inline-block;
-    padding: 0 6px;
-    font-size: 12px;
-    font-weight: 500;
-    color: #666;
-}
+            display: inline-block;
+            padding: 0 6px;
+            font-size: 12px;
+            font-weight: 500;
+            color: #666;
+        }
+
+        /* ── Feedback / Bug Report Modal ── */
+        .feedback-prompt {
+            position: fixed;
+            inset: 0;
+            z-index: 9998;
+            background: rgba(0, 0, 0, .45);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 24px;
+        }
+
+        .feedback-card {
+            width: 100%;
+            max-width: 580px;
+            max-height: calc(100vh - 48px);
+            overflow-y: auto;
+            background: #fff;
+            border-radius: 18px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, .25);
+        }
+
+        .feedback-header {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 16px;
+            padding: 22px 24px 18px;
+            border-bottom: 1px solid var(--g1);
+        }
+
+        .feedback-header h2 {
+            font-family: 'DM Sans', sans-serif;
+            font-size: 19px;
+            font-weight: 700;
+            color: var(--g9);
+            margin: 0;
+        }
+
+        .feedback-header p {
+            font-size: 12.5px;
+            color: var(--g5);
+            margin-top: 4px;
+        }
+
+        .feedback-close {
+            flex-shrink: 0;
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: none;
+            border-radius: 8px;
+            background: transparent;
+            color: var(--g5);
+            cursor: pointer;
+            font-size: 20px;
+            line-height: 1;
+        }
+
+        .feedback-close:hover {
+            background: var(--g1);
+            color: var(--g9);
+        }
+
+        .feedback-body {
+            padding: 22px 24px 24px;
+        }
+
+        .feedback-field {
+            margin-bottom: 16px;
+        }
+
+        .feedback-field label {
+            display: block;
+            margin-bottom: 6px;
+            font-size: 11px;
+            font-weight: 600;
+            color: var(--g5);
+            letter-spacing: .06em;
+            text-transform: uppercase;
+        }
+
+        .feedback-field input,
+        .feedback-field select,
+        .feedback-field textarea {
+            width: 100%;
+            border: 1.5px solid var(--g2);
+            border-radius: var(--rs);
+            padding: 10px 12px;
+            background: #fff;
+            color: var(--g9);
+            font: inherit;
+            font-size: 13px;
+            transition: border-color .15s, box-shadow .15s;
+        }
+
+        .feedback-field textarea {
+            min-height: 120px;
+            resize: vertical;
+            line-height: 1.5;
+        }
+
+        .feedback-field input:focus,
+        .feedback-field select:focus,
+        .feedback-field textarea:focus {
+            outline: none;
+            border-color: var(--navy);
+            box-shadow: 0 0 0 3px rgba(1, 27, 60, .08);
+        }
+
+        .feedback-required {
+            color: var(--err);
+        }
+
+        .feedback-contact-note {
+            margin-top: 5px;
+            font-size: 10.5px;
+            color: var(--g4);
+        }
+
+        .feedback-diagnostics {
+            display: flex;
+            align-items: flex-start;
+            gap: 9px;
+            padding: 12px 14px;
+            margin: 4px 0 18px;
+            background: var(--g0);
+            border: 1px solid var(--g2);
+            border-radius: var(--rs);
+        }
+
+        .feedback-diagnostics input {
+            width: 15px;
+            height: 15px;
+            margin-top: 2px;
+            accent-color: var(--navy);
+            flex-shrink: 0;
+        }
+
+        .feedback-diagnostics label {
+            font-size: 11.5px;
+            color: var(--g5);
+            cursor: pointer;
+            line-height: 1.5;
+        }
+
+        .feedback-diagnostics strong {
+            display: block;
+            color: var(--g7);
+            font-weight: 600;
+        }
+
+        .feedback-status {
+            display: none;
+            padding: 10px 12px;
+            margin-bottom: 14px;
+            border-radius: var(--rs);
+            font-size: 12px;
+        }
+
+        .feedback-status.show {
+            display: block;
+        }
+
+        .feedback-status.success {
+            color: var(--ok);
+            background: var(--ok-bg);
+            border: 1px solid var(--ok-bd);
+        }
+
+        .feedback-status.error {
+            color: var(--err);
+            background: var(--err-bg);
+            border: 1px solid var(--err-bd);
+        }
+
+        .feedback-actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: 8px;
+        }
+
+        .feedback-actions button {
+            padding: 9px 14px;
+            border-radius: var(--rs);
+            border: none;
+            font-family: inherit;
+            font-size: 12.5px;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        .feedback-cancel {
+            background: var(--g1);
+            color: var(--g7);
+        }
+
+        .feedback-submit {
+            background: var(--navy);
+            color: #fff;
+        }
+
+        .feedback-submit:hover {
+            background: var(--navy2);
+        }
+
+        .feedback-submit:disabled {
+            opacity: .5;
+            cursor: not-allowed;
+        }
+
+        .feedback-honeypot {
+            position: absolute !important;
+            left: -9999px !important;
+            width: 1px !important;
+            height: 1px !important;
+            overflow: hidden !important;
+        }
+
+        @media (max-width: 600px) {
+            .feedback-prompt {
+                padding: 12px;
+            }
+
+            .feedback-card {
+                max-height: calc(100vh - 24px);
+            }
+
+            .feedback-header,
+            .feedback-body {
+                padding-left: 18px;
+                padding-right: 18px;
+            }
+        }
+
     </style>
 </head>
 <body>
@@ -3594,6 +3832,24 @@
                                                                                              y2="8"/></svg></span>
                 <span class="sb-text">Information<span class="sb-hint">Rules &amp; deadlines</span></span>
             </a>
+
+            <button type="button"
+                    class="sb-link"
+                    onclick="openFeedbackModal();closeSidebar()">
+                <span class="sb-ico">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none"
+                         stroke="currentColor" stroke-width="2"
+                         stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M21 15a4 4 0 0 1-4 4H8l-5 3V7a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4z"/>
+                        <line x1="8" y1="9" x2="16" y2="9"/>
+                        <line x1="8" y1="13" x2="13" y2="13"/>
+                    </svg>
+                </span>
+                <span class="sb-text">
+                    Feedback
+                    <span class="sb-hint">Report bugs &amp; suggestions</span>
+                </span>
+            </button>
         </nav>
         <div class="sb-meta">
             <div class="pd-hdr">Active period</div>
@@ -3633,7 +3889,8 @@
         </div>
         <div class="sb-footer">
             <img id="logoMain" src="assets/logo-main.png" alt="msp" class="logo-main">
-            <div class="sb-privacy">Your data stays in your browser. Nothing is uploaded.</div>
+            <div class="sb-privacy">Planner and transcript data stay in your browser.
+                Only feedback you choose to submit is sent externally.</div>
         </div>
     </aside>
 
@@ -3868,9 +4125,10 @@
     // ═══════════════════════════════════════════════════
 
     //THIS VERSION SHOULD BE CHANGED ON EVERYUPDATE (to the same as the version.json file) OR IT WILL CAUSE PERMANENT UPDATE POPUPS
-    const APP_VERSION = '4.1.9'
+    const APP_VERSION = '4.2.0'
     const DATA_BASE = './data/';
     const updateurl = 'https://raw.githubusercontent.com/Arthurgallaxy/msp-course-lab-selector-development/main/MSP%20Course%20Planner%20V4/version.json';
+    const FEEDBACK_ENDPOINT = 'https://formspree.io/f/maeyaoen';
 
     const UPDATE_POLICY = {
         low: {
@@ -4139,6 +4397,349 @@
 
     function escapeAttribute(value) {
         return escapeHTML(value);
+    }
+
+    // ═══════════════════════════════════════════════════
+    // FEEDBACK & BUG REPORTS
+    // ═══════════════════════════════════════════════════
+
+    function openFeedbackModal() {
+        const existing = document.getElementById('feedbackPrompt');
+        if (existing) existing.remove();
+
+        const modal = document.createElement('div');
+        modal.id = 'feedbackPrompt';
+        modal.className = 'feedback-prompt';
+
+        modal.innerHTML = `
+        <div class="feedback-card"
+             role="dialog"
+             aria-modal="true"
+             aria-labelledby="feedbackTitle">
+
+            <div class="feedback-header">
+                <div>
+                    <h2 id="feedbackTitle">Feedback &amp; Bug Reports</h2>
+                    <p>Send a report directly to the MSP Course Planner development team.</p>
+                    <p><b> NEVER </b> include your transcript, student number, grades, or other sensitive personal information </p>
+                    <p><small> *if the bug is related to sensitive information please submit an email address, and we will contact you privately </small></p>
+                </div>
+
+                <button type="button"
+                        class="feedback-close"
+                        onclick="closeFeedbackModal()"
+                        aria-label="Close">
+                    &times;
+                </button>
+            </div>
+
+            <form class="feedback-body"
+                  id="feedbackForm"
+                  onsubmit="submitFeedback(event)">
+
+                <div class="feedback-field">
+                    <label for="feedbackType">
+                        Type <span class="feedback-required">*</span>
+                    </label>
+                    <select id="feedbackType"
+                            required
+                            onchange="updateFeedbackFormType()">
+                        <option value="bug">Bug report</option>
+                        <option value="feature">Feature request</option>
+                        <option value="feedback">General feedback</option>
+                    </select>
+                </div>
+
+                <div class="feedback-field">
+                    <label for="feedbackReportTitle">
+                        Title <span class="feedback-required">*</span>
+                    </label>
+                    <input type="text"
+                           id="feedbackReportTitle"
+                           maxlength="150"
+                           required
+                           placeholder="Briefly describe the issue or suggestion">
+                </div>
+
+                <div class="feedback-field">
+                    <label for="feedbackDescription">
+                        Description <span class="feedback-required">*</span>
+                    </label>
+                    <textarea id="feedbackDescription"
+                              maxlength="5000"
+                              required
+                              placeholder="Describe what happened, or tell us what you would like to see improved. please include if you were online or offline"></textarea>
+                </div>
+
+                <div class="feedback-field"
+                     id="feedbackExpectedField">
+                    <label for="feedbackExpected">
+                        Expected behaviour
+                    </label>
+                    <textarea id="feedbackExpected"
+                              maxlength="2000"
+                              placeholder="What did you expect to happen instead?"></textarea>
+                </div>
+
+                <div class="feedback-field">
+                    <label for="feedbackEmail">
+                        Contact email
+                    </label>
+                    <input type="email"
+                           id="feedbackEmail"
+                           maxlength="254"
+                           autocomplete="email"
+                           placeholder="Optional">
+                    <div class="feedback-contact-note">
+                        Only provide an email if you are happy for the development team
+                        to contact you about this report.
+                    </div>
+                </div>
+
+                <div class="feedback-diagnostics">
+                    <input type="checkbox"
+                           id="feedbackDiagnostics"
+                           checked>
+                    <label for="feedbackDiagnostics">
+                        <strong>Include technical information</strong>
+                        Includes App version, active period, browser/platform, screen size. does NOT include Your transcript, grades, selected courses
+                        and saved planner data.
+                    </label>
+                </div>
+
+                <div class="feedback-honeypot"
+                     aria-hidden="true">
+                    <label for="feedbackGotcha">Leave this field empty</label>
+                    <input type="text"
+                           id="feedbackGotcha"
+                           tabindex="-1"
+                           autocomplete="off">
+                </div>
+
+                <div id="feedbackStatus"
+                     class="feedback-status"
+                     role="status"
+                     aria-live="polite"></div>
+
+                <div class="feedback-actions">
+                    <button type="button"
+                            class="feedback-cancel"
+                            onclick="closeFeedbackModal()">
+                        Cancel
+                    </button>
+
+                    <button type="submit"
+                            class="feedback-submit"
+                            id="feedbackSubmit">
+                        Submit report
+                    </button>
+                </div>
+            </form>
+        </div>
+    `;
+
+        modal.addEventListener('click', event => {
+            if (event.target === modal) {
+                closeFeedbackModal();
+            }
+        });
+
+        document.body.appendChild(modal);
+
+        updateFeedbackFormType();
+
+        setTimeout(() => {
+            document.getElementById('feedbackReportTitle')?.focus();
+        }, 0);
+    }
+
+    function closeFeedbackModal() {
+        const modal = document.getElementById('feedbackPrompt');
+        if (modal) modal.remove();
+    }
+
+    function updateFeedbackFormType() {
+        const type = document.getElementById('feedbackType')?.value;
+        const expectedField = document.getElementById('feedbackExpectedField');
+
+        if (!expectedField) return;
+
+        expectedField.style.display =
+            type === 'bug'
+                ? ''
+                : 'none';
+    }
+
+    async function submitFeedback(event) {
+        event.preventDefault();
+
+        const submitButton = document.getElementById('feedbackSubmit');
+        const status = document.getElementById('feedbackStatus');
+
+        if (!submitButton || !status) return;
+
+        const type =
+            document.getElementById('feedbackType')?.value || 'feedback';
+
+        const title =
+            document.getElementById('feedbackReportTitle')?.value.trim() || '';
+
+        const description =
+            document.getElementById('feedbackDescription')?.value.trim() || '';
+
+        const expectedBehaviour =
+            document.getElementById('feedbackExpected')?.value.trim() || '';
+
+        const contactEmail =
+            document.getElementById('feedbackEmail')?.value.trim() || '';
+
+        const includeDiagnostics =
+            document.getElementById('feedbackDiagnostics')?.checked ?? false;
+
+        const gotcha =
+            document.getElementById('feedbackGotcha')?.value || '';
+
+        if (!title || !description) {
+            showFeedbackStatus(
+                'Please provide both a title and description.',
+                'error'
+            );
+            return;
+        }
+
+        if (!navigator.onLine) {
+            showFeedbackStatus(
+                'You appear to be offline. Your report has not been sent. Reconnect and try again.',
+                'error'
+            );
+            return;
+        }
+
+        const typeLabels = {
+            bug: 'Bug report',
+            feature: 'Feature request',
+            feedback: 'General feedback'
+        };
+
+        const payload = {
+            report_type: typeLabels[type] || 'General feedback',
+            title,
+            message: description,
+            expected_behaviour:
+                type === 'bug'
+                    ? expectedBehaviour
+                    : '',
+            email: contactEmail,
+            _gotcha: gotcha
+        };
+
+        if (includeDiagnostics) {
+            payload.app_version = APP_VERSION;
+            payload.period = currentPeriod || 'Unknown';
+            payload.active_plan = act || 'Unknown';
+            payload.current_view = activeView || 'Unknown';
+            payload.browser_platform = navigator.userAgent;
+            payload.language = navigator.language || 'Unknown';
+            payload.screen =
+                `${window.screen.width}x${window.screen.height}`;
+            payload.online = navigator.onLine ? 'Yes' : 'No';
+            payload.reported_at =
+                new Date().toISOString();
+        }
+
+        submitButton.disabled = true;
+        submitButton.textContent = 'Sending...';
+
+        status.className = 'feedback-status';
+        status.textContent = '';
+
+        try {
+            const response = await fetch(FEEDBACK_ENDPOINT, {
+                method: 'POST',
+                headers: {
+                    'Accept': 'application/json',
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(payload)
+            });
+
+            if (!response.ok) {
+                let errorMessage = 'Could not submit the report. Please try again.';
+
+                try {
+                    const data = await response.json();
+
+                    if (Array.isArray(data?.errors) && data.errors.length) {
+                        errorMessage =
+                            data.errors
+                                .map(error => error.message)
+                                .filter(Boolean)
+                                .join(' ');
+                    }
+                } catch (_) {}
+
+                throw new Error(errorMessage);
+            }
+
+            showFeedbackStatus(
+                'Report submitted successfully. Thank you for helping improve the planner.',
+                'success'
+            );
+            sessionStorage.removeItem(FEEDBACK_DRAFT_KEY);
+
+            const form = document.getElementById('feedbackForm');
+            if (form) form.reset();
+
+            setTimeout(() => {
+                closeFeedbackModal();
+            }, 1600);
+
+        } catch (err) {
+            console.warn('Feedback submission failed:', err);
+
+            showFeedbackStatus(
+                err.message ||
+                'Could not submit the report. Please try again.',
+                'error'
+            );
+
+            submitButton.disabled = false;
+            submitButton.textContent = 'Submit report';
+        }
+    }
+
+    function showFeedbackStatus(message, type) {
+        const status = document.getElementById('feedbackStatus');
+        if (!status) return;
+
+        status.textContent = message;
+        status.className = `feedback-status show ${type}`;
+    }
+
+    document.addEventListener('keydown', event => {
+        if (
+            event.key === 'Escape' &&
+            document.getElementById('feedbackPrompt')
+        ) {
+            closeFeedbackModal();
+        }
+    });
+
+    const FEEDBACK_DRAFT_KEY = 'msp-feedback-draft';
+
+    function saveFeedbackDraft() {
+        const draft = {
+            type: document.getElementById('feedbackType')?.value || 'bug',
+            title: document.getElementById('feedbackReportTitle')?.value || '',
+            description: document.getElementById('feedbackDescription')?.value || '',
+            expected: document.getElementById('feedbackExpected')?.value || '',
+            email: document.getElementById('feedbackEmail')?.value || ''
+        };
+
+        sessionStorage.setItem(
+            FEEDBACK_DRAFT_KEY,
+            JSON.stringify(draft)
+        );
     }
 
     function getDeadlines() {

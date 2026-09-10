@@ -1708,7 +1708,7 @@
             pointer-events: none
         }
 
-        /* Bene Meritum: subtle silver border */
+        /* Honours: subtle silver border */
         .profile-card.dist-bm {
             border-color: rgba(148, 163, 184, .4);
             box-shadow: 0 8px 32px rgba(1, 27, 60, .18), 0 0 0 1px rgba(148, 163, 184, .15)
@@ -3255,7 +3255,7 @@
         }
 
         .sb-meta::before {
-            content: 'Change period here';
+            content: 'Periods:';
             display: block;
             margin-bottom: 8px;
             font-size: 15px;
@@ -4125,7 +4125,7 @@
     // ═══════════════════════════════════════════════════
 
     //THIS VERSION SHOULD BE CHANGED ON EVERYUPDATE (to the same as the version.json file) OR IT WILL CAUSE PERMANENT UPDATE POPUPS
-    const APP_VERSION = '4.2.0'
+    const APP_VERSION = '4.2.1'
     const DATA_BASE = './data/';
     const updateurl = 'https://raw.githubusercontent.com/Arthurgallaxy/msp-course-lab-selector-development/main/MSP%20Course%20Planner%20V4/version.json';
     const FEEDBACK_ENDPOINT = 'https://formspree.io/f/maeyaoen';
@@ -5873,7 +5873,7 @@
         let distinction = '';
         if (cumGPA >= 8.6) distinction = 'Summa Cum Laude';
         else if (cumGPA >= 8.0) distinction = 'Cum Laude';
-        else if (cumGPA >= 7.0) distinction = 'Bene Meritum';
+        else if (cumGPA >= 7.4) distinction = 'Honours';
         else distinction = '';
 
         data.computed = {
@@ -5970,8 +5970,8 @@
 
         // ─── Profile Card ───
         const dist = r.gpa.projectedDistinction;
-        const distClass = dist === 'Summa Cum Laude' ? ' dist-scl' : dist === 'Cum Laude' ? ' dist-cl' : dist === 'Bene Meritum' ? ' dist-bm' : '';
-        const distBadge = dist === 'Summa Cum Laude' ? `<div class="pc-distinction pc-dist-scl"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26"/></svg> Summa Cum Laude</div>` : dist === 'Cum Laude' ? `<div class="pc-distinction pc-dist-cl"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26"/></svg> Cum Laude</div>` : dist === 'Bene Meritum' ? `<div class="pc-distinction pc-dist-bm"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26"/></svg> Bene Meritum</div>` : '';
+        const distClass = dist === 'Summa Cum Laude' ? ' dist-scl' : dist === 'Cum Laude' ? ' dist-cl' : dist === 'Honours' ? ' dist-bm' : '';
+        const distBadge = dist === 'Summa Cum Laude' ? `<div class="pc-distinction pc-dist-scl"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26"/></svg> Summa Cum Laude</div>` : dist === 'Cum Laude' ? `<div class="pc-distinction pc-dist-cl"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26"/></svg> Cum Laude</div>` : dist === 'Honours' ? `<div class="pc-distinction pc-dist-bm"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26"/></svg> Honours</div>` : '';
         html += `<div class="profile-card${distClass} fade-in">
     <div class="pc-left">
       <h2>${esc(t.student.name || 'Student')}</h2>
@@ -6000,7 +6000,7 @@
     </div>
     <div class="stat-card" onclick="toggleStatCard(this)">
       <div class="sc-val">${c.currentCumGPA.toFixed(1)}</div><div class="sc-label">GPA</div><div class="sc-sub">(${gpaLetter})</div>
-      <div class="sc-tooltip"><span class="sc-close" onclick="event.stopPropagation();closeStatCard(this)">\u00D7</span><h4>Cumulative GPA</h4>Your grade point average across all semesters.<br><br>Scale: 1.0 \u2013 10.0<br>Pass threshold: 5.5<br><br><strong>\u2265 8.6</strong> = Summa Cum Laude<br><strong>\u2265 8.0</strong> = Cum Laude<br><strong>\u2265 7.0</strong> = Bene Meritum</div>
+      <div class="sc-tooltip"><span class="sc-close" onclick="event.stopPropagation();closeStatCard(this)">\u00D7</span><h4>Cumulative GPA</h4>Your grade point average across all semesters.<br><br>Scale: 1.0 \u2013 10.0<br>Pass threshold: 5.5<br><br><strong>\u2265 8.6</strong> = Summa Cum Laude<br><strong>\u2265 8.0</strong> = Cum Laude<br><strong>\u2265 7.4</strong> = Honours</div>
     </div>
     <div class="stat-card" onclick="toggleStatCard(this)">
       <div class="sc-val">${c.currentPR.toFixed(2)}</div><div class="sc-label">PR</div><div class="sc-sub">Progress Rate</div>
@@ -6012,7 +6012,7 @@
     </div>
     <div class="stat-card${r.gpa.projectedDistinction ? ' sc-ok' : ''}" onclick="toggleStatCard(this)">
       <div class="sc-val" style="font-size:16px">${r.gpa.projectedDistinction || '\u2014'}</div><div class="sc-label">Track</div><div class="sc-sub">Distinction</div>
-      <div class="sc-tooltip"><span class="sc-close" onclick="event.stopPropagation();closeStatCard(this)">\u00D7</span><h4>Distinction Track</h4>Based on your current GPA of <strong>${c.currentCumGPA.toFixed(1)}</strong>:<br><br>${c.currentCumGPA >= 8.6 ? '<strong>Summa Cum Laude</strong> \u2014 Exceptional. Top academic achievement.' : c.currentCumGPA >= 8 ? '<strong>Cum Laude</strong> \u2014 With honours. Outstanding performance.' : c.currentCumGPA >= 7 ? '<strong>Bene Meritum</strong> \u2014 With merit. Strong academic record.' : '\u2014 No distinction track currently. GPA \u2265 7.0 needed for Bene Meritum.'}<br><br><em>Distinctions are awarded at graduation and require meeting all requirements with no resits (for SCL).</em></div>
+      <div class="sc-tooltip"><span class="sc-close" onclick="event.stopPropagation();closeStatCard(this)">\u00D7</span><h4>Distinction Track</h4>Based on your current GPA of <strong>${c.currentCumGPA.toFixed(1)}</strong>:<br><br>${c.currentCumGPA >= 8.6 ? '<strong>Summa Cum Laude</strong> \u2014 Exceptional. Top academic achievement.' : c.currentCumGPA >= 8 ? '<strong>Cum Laude</strong> \u2014 With Honors. Outstanding performance.' : c.currentCumGPA >= 7.4 ? '<strong>Honours</strong> \u2014 Good Merit. Strong academic record.' : '\u2014 No distinction track currently. GPA \u2265 7.4 needed for Honours.'}<br><br><em>Distinctions are awarded at graduation and require meeting all requirements with no resits (for SCL).</em></div>
     </div>
   </div>`;
 
@@ -6244,7 +6244,7 @@
         const thresholds = [
             {gpa: 8.6, label: 'Summa Cum Laude', color: '#D97706'},
             {gpa: 8, label: 'Cum Laude', color: '#059669'},
-            {gpa: 7, label: 'Bene Meritum', color: '#6366F1'}
+            {gpa: 7.4, label: 'Honours', color: '#6366F1'}
         ].filter(th => th.gpa >= minGPA && th.gpa <= maxGPA);
 
         let svg = `<svg viewBox="0 0 ${W} ${H}" style="width:100%;height:auto;max-height:240px" xmlns="http://www.w3.org/2000/svg">
@@ -6303,7 +6303,7 @@
       <div class="gpa-legend-item"><div class="gpa-legend-swatch" style="background:#94A3B8;border:1px dashed #94A3B8"></div> Semester GPA</div>
       <div class="gpa-legend-item"><div class="gpa-legend-swatch" style="background:#D97706"></div> Summa Cum Laude (\u2265 8.6)</div>
       <div class="gpa-legend-item"><div class="gpa-legend-swatch" style="background:#059669"></div> Cum Laude (\u2265 8.0)</div>
-      <div class="gpa-legend-item"><div class="gpa-legend-swatch" style="background:#6366F1"></div> Bene Meritum (\u2265 7.0)</div>
+      <div class="gpa-legend-item"><div class="gpa-legend-swatch" style="background:#6366F1"></div> Honours (\u2265 7.4)</div>
     </div>
     <div style="text-align:center;margin-top:14px"><a href="#dash-needs" onclick="document.getElementById('dash-needs').scrollIntoView({behavior:'smooth'});return false" class="btn btn-navy" style="text-decoration:none;font-size:12px;padding:8px 18px;display:inline-flex;align-items:center;gap:6px">${SVG_ICONS.clipboard} Missing Graduation Requirements</a></div>
   </div>`;

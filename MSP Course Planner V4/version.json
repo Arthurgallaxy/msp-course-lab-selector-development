@@ -1,8 +1,8 @@
 {
-  "latestVersion": "4.2.0",
-  "priority": "medium",
+  "latestVersion": "4.2.1",
+  "priority": "low",
   "title": "Update available",
-  "message": "Introduced feedback/bug form for users to quickly let us know if anything went wrong",
+  "message": "Changed Bene Meritum to Honours, and adjusted the grade required according to the MSP Rules & Regulations",
   "downloadUrl": "https://github.com/Arthurgallaxy/msp-course-lab-selector-development/releases/latest",
   "changelogUrl": "https://github.com/Arthurgallaxy/msp-course-lab-selector-development/releases/latest",
   "minimumSupportedVersion": "4.1.8"

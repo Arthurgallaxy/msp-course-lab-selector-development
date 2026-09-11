@@ -4125,8 +4125,7 @@
     // ═══════════════════════════════════════════════════
 
     //THIS VERSION SHOULD BE CHANGED ON EVERYUPDATE (to the same as the version.json file) OR IT WILL CAUSE PERMANENT UPDATE POPUPS
-    const APP_VERSION = '4.2.1'
-    const DATA_BASE = './data/';
+    const APP_VERSION = '4.2.2';
     const updateurl = 'https://raw.githubusercontent.com/Arthurgallaxy/msp-course-lab-selector-development/main/MSP%20Course%20Planner%20V4/version.json';
     const FEEDBACK_ENDPOINT = 'https://formspree.io/f/maeyaoen';
 
@@ -4210,28 +4209,28 @@
         P1: {
             switch: 'Friday 31 July 2026, 17:00',
             withdrawal: 'Friday 4 September 2026, 17:00',
-            switchISO: '2026-07-31T17:00:00',
+            switchISO: '2026-07-31T17:00:00+02:00',
             period: '1',
             year: '2026\u20132027'
         },
         P2: {
             switch: 'Friday 25 September 2026, 17:00',
             withdrawal: 'Friday 30 October 2026, 17:00',
-            switchISO: '2026-09-25T17:00:00',
+            switchISO: '2026-09-25T17:00:00+02:00',
             period: '2',
             year: '2026\u20132027'
         },
         P4: {
             switch: 'Friday 8 January 2027, 17:00',
             withdrawal: 'Friday 29 January 2027, 17:00',
-            switchISO: '2027-01-08T17:00:00',
+            switchISO: '2027-01-08T17:00:00+01:00',
             period: '4',
             year: '2026\u20132027'
         },
         P5: {
             switch: 'Friday 5 March 2027, 17:00',
             withdrawal: 'Friday 2 April 2027, 17:00',
-            switchISO: '2027-03-05T17:00:00',
+            switchISO: '2027-03-05T17:00:00+01:00',
             period: '5',
             year: '2026\u20132027'
         }
@@ -4548,6 +4547,69 @@
 
         updateFeedbackFormType();
 
+        try {
+            const rawDraft =
+                sessionStorage.getItem(FEEDBACK_DRAFT_KEY);
+
+            if (rawDraft) {
+                const draft = JSON.parse(rawDraft);
+
+                const type =
+                    document.getElementById('feedbackType');
+                const title =
+                    document.getElementById('feedbackReportTitle');
+                const description =
+                    document.getElementById('feedbackDescription');
+                const expected =
+                    document.getElementById('feedbackExpected');
+                const email =
+                    document.getElementById('feedbackEmail');
+
+                if (type && draft.type) {
+                    type.value = draft.type;
+                }
+
+                if (title) {
+                    title.value = draft.title || '';
+                }
+
+                if (description) {
+                    description.value =
+                        draft.description || '';
+                }
+
+                if (expected) {
+                    expected.value =
+                        draft.expected || '';
+                }
+
+                if (email) {
+                    email.value = draft.email || '';
+                }
+
+                updateFeedbackFormType();
+            }
+        } catch (err) {
+            console.warn(
+                'Could not restore feedback draft:',
+                err
+            );
+        }
+
+        document
+            .getElementById('feedbackForm')
+            ?.addEventListener(
+                'input',
+                saveFeedbackDraft
+            );
+
+        document
+            .getElementById('feedbackForm')
+            ?.addEventListener(
+                'change',
+                saveFeedbackDraft
+            );
+
         setTimeout(() => {
             document.getElementById('feedbackReportTitle')?.focus();
         }, 0);
@@ -4766,6 +4828,17 @@
     let descriptions = {};
     let currentPeriod = "P5";
 
+    const PERIOD_ORDER = ['P1', 'P2', 'P4', 'P5'];
+
+    const PERIOD_DATA = {
+        P1: [],
+        P2: [],
+        P4: [],
+        P5: []
+    };
+
+    const PERIOD_TEXT = {};
+
     // Field-course bundles: a Bundle ID groups several modules that must be
     // taken together. When a plan opts into a bundle, individual Course/Practical
     // dropdowns are disabled and the three components lock in as one unit.
@@ -4798,6 +4871,453 @@
         config: null,
         transcript: null
     };
+
+    //functions for making cross period data accessible (lets the app give the user conditional course acceptance as long as they pass a course they have scheduled)
+    function earlierPeriods(period) {
+        const index = PERIOD_ORDER.indexOf(period);
+
+        if (index <= 0) return [];
+
+        return PERIOD_ORDER.slice(0, index);
+    }
+
+    function isSwitchDeadlineOpen(period) {
+        const deadline =
+            DEADLINES_BY_PERIOD[period]?.switchISO;
+
+        if (!deadline) return false;
+
+        const timestamp = new Date(deadline).getTime();
+
+        if (!Number.isFinite(timestamp)) return false;
+
+        return Date.now() <= timestamp;
+    }
+
+    function plannedCodesForPeriod(period, planKey) {
+        const plan = ALL_PLANS[period]?.[planKey];
+
+        if (!plan) return new Set();
+
+        const codes = new Set();
+
+        plan.courses
+            .slice(0, plan.courseCount)
+            .forEach(code => {
+                if (
+                    code &&
+                    !code.startsWith('__EXTERNAL_COURSE_')
+                ) {
+                    codes.add(code);
+                }
+            });
+
+        plan.skills
+            .slice(0, plan.skillCount)
+            .forEach(code => {
+                if (code) codes.add(code);
+            });
+
+        if (plan.bundle) {
+            (PERIOD_DATA[period] || [])
+                .filter(item => item.Bundle === plan.bundle)
+                .forEach(item => codes.add(item.Code));
+        }
+
+        return codes;
+    }
+
+
+    // Finds every earlier-period plan in which a prerequisite has already been scheduled, A/B/C are alternatives within EACH period
+    function findPlannedPrerequisiteOptions(
+        code,
+        targetPeriod
+    ) {
+        const matches = [];
+
+        for (const period of earlierPeriods(targetPeriod)) {
+            for (const planKey of ['A', 'B', 'C']) {
+                const codes =
+                    plannedCodesForPeriod(
+                        period,
+                        planKey
+                    );
+
+                if (codes.has(code)) {
+                    matches.push({
+                        code,
+                        period,
+                        planKey
+                    });
+                }
+            }
+        }
+
+        return matches;
+    }
+
+
+    function findEarlierPrerequisiteAvailability(
+        code,
+        targetPeriod
+    ) {
+        const matches = [];
+
+        for (const period of earlierPeriods(targetPeriod)) {
+            if (!isSwitchDeadlineOpen(period)) {
+                continue;
+            }
+
+            const item =
+                (PERIOD_DATA[period] || [])
+                    .find(module =>
+                        module.Code === code
+                    );
+
+            if (!item) continue;
+
+            matches.push({
+                code,
+                title: item.Title || code,
+                period,
+                deadline:
+                    DEADLINES_BY_PERIOD[period]?.switch || ''
+            });
+        }
+
+        return matches;
+    }
+
+
+    function parsePrerequisiteGroups(prereqStr) {
+        return String(prereqStr || '')
+            .split('+')
+            .map(group =>
+                group
+                    .split('/')
+                    .map(code => code.trim())
+                    .filter(Boolean)
+            )
+            .filter(group => group.length);
+    }
+
+
+    // Evaluate prerequisites across every compatible combination of earlier-period A/B/C options. Different plan letters may be used in different periods: P2 Plan B + P4 Plan C = valid But two different plans from the SAME period cannot both be used: P4 Plan A + P4 Plan C = invalid
+    function evaluatePrerequisitePlanning(
+        prereqStr,
+        targetPeriod = currentPeriod
+    ) {
+        const passedCodes =
+            APP.transcript?.computed?.passedCodes ||
+            new Set();
+
+        const groups =
+            parsePrerequisiteGroups(prereqStr);
+
+        const groupResults =
+            groups.map(options => {
+
+                // Transcript already satisfies this AND-group.
+                const passedCode =
+                    options.find(code =>
+                        passedCodes.has(code)
+                    );
+
+                if (passedCode) {
+                    return {
+                        state: 'passed',
+                        code: passedCode,
+                        options,
+                        candidates: [],
+                        available: []
+                    };
+                }
+
+                // Otherwise find every earlier plan containing one of the acceptable alternatives.
+                const candidates =
+                    options.flatMap(code =>
+                        findPlannedPrerequisiteOptions(
+                            code,
+                            targetPeriod
+                        )
+                    );
+
+                const available =
+                    options.flatMap(code =>
+                        findEarlierPrerequisiteAvailability(
+                            code,
+                            targetPeriod
+                        )
+                    );
+
+                return {
+                    state:
+                        candidates.length
+                            ? 'planned'
+                            : 'missing',
+
+                    options,
+                    candidates,
+                    available
+                };
+            });
+
+        const missing =
+            groupResults.filter(
+                result =>
+                    result.state === 'missing'
+            );
+
+        const availability = [
+            ...new Map(
+                groupResults
+                    .flatMap(result =>
+                        result.available || []
+                    )
+                    .map(match => [
+                        `${match.code}-${match.period}`,
+                        match
+                    ])
+            ).values()
+        ];
+
+        //If one complete AND-group has neither a transcript match nor a planned course, no complete conditional route currently exists.
+        if (missing.length) {
+            return {
+                satisfied: false,
+                conditional: false,
+                conflict: false,
+                groups: groupResults,
+                missing,
+                solutions: [],
+                availability
+            };
+        }
+
+        //Convert every requirement group into its possible ways of being satisfied.
+
+        const candidateGroups =
+            groupResults.map(result => {
+
+                if (result.state === 'passed') {
+                    return [{
+                        type: 'passed',
+                        code: result.code
+                    }];
+                }
+
+                return result.candidates.map(
+                    candidate => ({
+                        type: 'planned',
+                        ...candidate
+                    })
+                );
+            });
+
+        const rawSolutions = [];
+
+        // Backtracking search. Only one A/B/C option may be chosen for a particular period, but different periods may use different letters.
+
+        function search(
+            index,
+            periodChoices,
+            matches
+        ) {
+            if (index >= candidateGroups.length) {
+                const uniqueMatches = [
+                    ...new Map(
+                        matches.map(match => [
+                            `${match.code}-${match.period}-${match.planKey}`,
+                            match
+                        ])
+                    ).values()
+                ];
+
+                rawSolutions.push({
+                    periodChoices: {
+                        ...periodChoices
+                    },
+                    matches: uniqueMatches
+                });
+
+                return;
+            }
+
+            for (
+                const candidate
+                of candidateGroups[index]
+                ) {
+                if (candidate.type === 'passed') {
+                    search(
+                        index + 1,
+                        periodChoices,
+                        matches
+                    );
+
+                    continue;
+                }
+
+                const existingChoice =
+                    periodChoices[
+                        candidate.period
+                        ];
+
+                //You cannot simultaneously choose P4 Plan A and P4 Plan C.
+                if (
+                    existingChoice &&
+                    existingChoice !==
+                    candidate.planKey
+                ) {
+                    continue;
+                }
+
+                search(
+                    index + 1,
+                    {
+                        ...periodChoices,
+                        [candidate.period]:
+                        candidate.planKey
+                    },
+                    [
+                        ...matches,
+                        candidate
+                    ]
+                );
+            }
+        }
+
+        search(0, {}, []);
+
+
+        //Remove duplicate routes.
+
+        const solutions = [
+            ...new Map(
+                rawSolutions.map(solution => {
+
+                    const signature =
+                        solution.matches
+                            .map(match =>
+                                `${match.period}:${match.planKey}:${match.code}`
+                            )
+                            .sort()
+                            .join('|');
+
+                    return [
+                        signature,
+                        solution
+                    ];
+                })
+            ).values()
+        ];
+
+        const hasPlannedRequirement =
+            groupResults.some(
+                result =>
+                    result.state === 'planned'
+            );
+
+        return {
+            satisfied:
+                solutions.length > 0,
+
+            conditional:
+                solutions.length > 0 &&
+                hasPlannedRequirement,
+
+            /*
+             * This catches cases such as:
+             *
+             * P4 Plan A = MAT2006
+             * P4 Plan B = PHY2001
+             *
+             * for MAT2006 + PHY2001.
+             *
+             * Both exist, but cannot be taken together.
+             */
+            conflict:
+                solutions.length === 0 &&
+                hasPlannedRequirement,
+
+            groups: groupResults,
+            missing: [],
+            solutions,
+            availability
+        };
+    }
+
+
+    //makes a readable output
+    function buildPrerequisiteSolutionsHtml(
+        planning
+    ) {
+        if (!planning?.solutions?.length) {
+            return '';
+        }
+
+        return planning.solutions
+            .map((solution, index) => {
+
+                const grouped = new Map();
+
+                solution.matches.forEach(match => {
+                    const key =
+                        `${match.period}-${match.planKey}`;
+
+                    if (!grouped.has(key)) {
+                        grouped.set(key, {
+                            period: match.period,
+                            planKey: match.planKey,
+                            codes: []
+                        });
+                    }
+
+                    const entry =
+                        grouped.get(key);
+
+                    if (
+                        !entry.codes.includes(
+                            match.code
+                        )
+                    ) {
+                        entry.codes.push(
+                            match.code
+                        );
+                    }
+                });
+
+                const parts =
+                    [...grouped.values()]
+                        .sort((a, b) =>
+                            PERIOD_ORDER.indexOf(
+                                a.period
+                            ) -
+                            PERIOD_ORDER.indexOf(
+                                b.period
+                            )
+                        )
+                        .map(entry =>
+                            `<strong>${esc(entry.period)} Plan ${esc(entry.planKey)}</strong>: ` +
+                            entry.codes
+                                .map(esc)
+                                .join(', ')
+                        )
+                        .join(' · ');
+
+                const label =
+                    planning.solutions.length > 1
+                        ? `Option ${index + 1}`
+                        : 'Planned route';
+
+                return `
+                <div style="margin-top:4px">
+                    <strong>${label}:</strong>
+                    ${parts}
+                </div>
+            `;
+            })
+            .join('');
+    }
 
     //functions for saving user data
     function savePlannerState() {
@@ -5194,7 +5714,9 @@
                 ? p.bundle
                 : '';
 
-        result.ack = {};
+        result.ack = p.ack && typeof p.ack === 'object' && !Array.isArray(p.ack)
+            ? { ...p.ack }
+            : {};
 
         return result;
     }
@@ -5870,7 +6392,7 @@
         const btrEligible = totalEarned >= 145;
 
         // Distinction projection
-        let distinction = '';
+        let distinction;
         if (cumGPA >= 8.6) distinction = 'Summa Cum Laude';
         else if (cumGPA >= 8.0) distinction = 'Cum Laude';
         else if (cumGPA >= 7.4) distinction = 'Honours';
@@ -6481,7 +7003,7 @@
 
         try {
             // Load CSV for the new period from external file
-            const csv = await loadText(DATA_PATHS.periods[p], `period_${p}`);
+            const csv = PERIOD_TEXT[p] || await loadText(DATA_PATHS.periods[p], `period_${p}`);
             load(csv);
 
             syncCustomLoadToggle();
@@ -7103,13 +7625,6 @@
         });
     }
 
-    function prereqIndicator(code) {
-        if (!APP.transcript) return '';
-        const pc = APP.transcript.computed.passedCodes;
-        if (pc.has(code)) return ' \u2705 passed';
-        return '';
-    }
-
     function renderCourseFields() {
         const p = PLANS[act];
         const body = document.querySelector('#coursecard .card-b');
@@ -7461,23 +7976,6 @@
         };
     }
 
-    function getCurrentLabScheduleSolution(testIndex = null, testCode = null) {
-        const p = PLANS[act];
-
-        const skillCodes = p.skills.slice(0, p.skillCount);
-
-        if (testIndex !== null) {
-            skillCodes[testIndex] = testCode;
-        }
-
-        const selectedLabObjs = skillCodes
-            .filter(Boolean)
-            .map(code => labs.find(l => l.Code === code))
-            .filter(Boolean);
-
-        return solveLabSchedule(selectedLabObjs, selectedCourses());
-    }
-
     function findLabOverlapConflicts(labsToSchedule, usedCourseBlocks) {
         const conflicts = [];
 
@@ -7510,13 +8008,6 @@
         }
 
         return conflicts;
-    }
-
-    function getSolvedLabAllocation(skill, selectedLabs, selectedCourses) {
-        const solved = solveLabSchedule(selectedLabs, selectedCourses);
-        if (!solved.ok) return null;
-
-        return solved.allocations.find(a => a && a.skill && a.skill.Code === skill.Code) || null;
     }
 
     function gridKey(block) {
@@ -7631,7 +8122,6 @@
 
         const p = PLANS[act];
         const previousValue = p.skills[index] || '';
-        const usedDays = selectedCourseDays();
 
         const excludedCodes = new Set(
             p.skills.filter((code, i) => i !== index && code)
@@ -7713,7 +8203,7 @@
                     extra = met ? ' ✅ prereqs met' : ' ❌ missing prereqs';
                 }
             }
-            let conflict = '';
+            let conflict;
 
             if (!ci.fits) {
                 conflict = ' ❌ no valid schedule';
@@ -7745,7 +8235,6 @@
 
     const getCourse1 = () => courses.find(c => c.Code === PLANS[act].courses[0]) || null;
     const getCourse2 = () => courses.find(c => c.Code === PLANS[act].courses[1]) || null;
-    const getLab = () => labs.find(l => l.Code === PLANS[act].skills[0]) || null;
 
     function formatDay(d) {
         return d.replace('AM', ' AM').replace('PM', ' PM');
@@ -7753,6 +8242,206 @@
 
     function esc(s) {
         return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    }
+
+    function buildPanelPrereqStatus(item) {
+        if (
+            !item?.Prerequisite ||
+            !item.PrerequisiteCodes
+        ) {
+            return '';
+        }
+
+        const prereqText =
+            formatPrereqs(
+                item.PrerequisiteCodes
+            );
+
+        const passedCodes =
+            APP.transcript?.computed?.passedCodes ||
+            new Set();
+
+        const transcriptMet =
+            !!APP.transcript &&
+            checkPrereqsMet(
+                item.PrerequisiteCodes,
+                passedCodes
+            );
+
+        // Already completed.
+        if (transcriptMet) {
+            return `
+            <div style="margin-top:4px">
+                <span style="
+                    color:var(--ok);
+                    font-size:11px;
+                    font-weight:600
+                ">
+                    ✅ Prerequisites met
+
+                    <span style="font-weight:400">
+                        (${prereqText},
+                        verified from transcript)
+                    </span>
+                </span>
+            </div>
+        `;
+        }
+
+        const planning =
+            evaluatePrerequisitePlanning(
+                item.PrerequisiteCodes,
+                currentPeriod
+            );
+
+        // A compatible set of earlier-period plans works.
+        if (planning.conditional) {
+            return `
+            <div style="margin-top:4px">
+                <span style="
+                    color:var(--warn);
+                    font-size:11px;
+                    font-weight:600
+                ">
+                    ⚠ Conditional prerequisite
+                </span>
+
+                <div style="
+                    margin-top:2px;
+                    color:var(--g7);
+                    font-size:11px
+                ">
+                    Requires ${prereqText}.
+                </div>
+
+                <div style="
+                    margin-top:3px;
+                    color:var(--g7);
+                    font-size:11px
+                ">
+                    ${buildPrerequisiteSolutionsHtml(
+                planning
+            )}
+                </div>
+
+                <div style="
+                    margin-top:3px;
+                    color:var(--g5);
+                    font-size:10.5px
+                ">
+                    Choose one of the compatible
+                    earlier-period options above and
+                    successfully complete the required
+                    module before taking this course.
+                </div>
+            </div>
+        `;
+        }
+
+        let html = '';
+
+        // Required courses exist in the planner, but only in mutually exclusive plans.
+
+        if (planning.conflict) {
+            html += `
+            <div style="
+                margin-top:5px;
+                padding:6px 8px;
+                background:var(--warn-bg);
+                border:1px solid var(--warn-bd);
+                border-radius:4px;
+                color:var(--warn);
+                font-size:10.5px
+            ">
+                <strong>
+                    ⚠ Planned prerequisites are not
+                    currently compatible
+                </strong>
+
+                <div style="margin-top:2px">
+                    The required modules appear in
+                    different alternative plans within
+                    the same period, so they cannot all
+                    be taken together as currently
+                    planned.
+                </div>
+            </div>
+        `;
+        }
+
+        if (APP.transcript) {
+            html += `
+            <div style="margin-top:4px">
+                <span style="
+                    color:var(--err);
+                    font-size:11px;
+                    font-weight:600
+                ">
+                    ❌ Missing prerequisite:
+                    ${prereqText}
+                </span>
+            </div>
+        `;
+        } else {
+            html += `
+            <div style="margin-top:4px">
+                <span style="
+                    color:var(--warn);
+                    font-size:11px;
+                    font-weight:600
+                ">
+                    ▲ Prerequisite required:
+                    ${prereqText}
+                </span>
+            </div>
+        `;
+        }
+
+        const uniqueAvailability =
+            planning.availability || [];
+
+        if (uniqueAvailability.length) {
+            const availabilityText =
+                uniqueAvailability
+                    .map(match => `
+                    <div style="margin-top:2px">
+                        <strong>
+                            ${esc(match.code)}
+                        </strong>
+                        is available in
+                        <strong>
+                            ${esc(match.period)}
+                        </strong>
+
+                        <span style="color:var(--g5)">
+                            · switch deadline:
+                            ${esc(match.deadline)}
+                        </span>
+                    </div>
+                `)
+                    .join('');
+
+            html += `
+            <div style="
+                margin-top:5px;
+                padding:6px 8px;
+                background:var(--inf-bg);
+                border:1px solid var(--inf-bd);
+                border-radius:4px;
+                color:var(--inf);
+                font-size:10.5px
+            ">
+                <div style="font-weight:600">
+                    ℹ Prerequisite available in an
+                    earlier period
+                </div>
+
+                ${availabilityText}
+            </div>
+        `;
+        }
+
+        return html;
     }
 
     function showPanel(item, id, isLab) {
@@ -7763,11 +8452,9 @@
         }
         const chips = item.Days.map(d => `<span class="daychip">${formatDay(d)}</span>`).join('');
         const tags = [item.Corequisite ? '<span class="tg tg-co">\u25ca Co-req</span>' : '', item.Prerequisite ? '<span class="tg tg-pre">\u25b2 Pre-req</span>' : ''].filter(Boolean).join('');
-        let prereqStatus = '';
-        if (APP.transcript && item.Prerequisite && item.PrerequisiteCodes) {
-            const met = checkPrereqsMet(item.PrerequisiteCodes, APP.transcript.computed.passedCodes);
-            prereqStatus = met ? '<div style="margin-top:4px"><span style="color:var(--ok);font-size:11px;font-weight:600">\u2705 Prerequisites met (verified from transcript)</span></div>' : '<div style="margin-top:4px"><span style="color:var(--err);font-size:11px;font-weight:600">\u274C Missing prerequisite: ' + item.PrerequisiteCodes + '</span></div>';
-        }
+
+        const prereqStatus = buildPanelPrereqStatus(item);
+
         let passedBadge = '';
         if (APP.transcript && APP.transcript.computed.passedCodes.has(item.Code)) {
             const mod = APP.transcript.semesters.flatMap(s => s.modules).find(m => m.code === item.Code);
@@ -8126,6 +8813,7 @@
         let slotClash = false;
         let badSched = false;
         let badAnti = false;
+        let conditionalPre = false;
 
         const loadWarning = getLoadGpaWarning(p.courseCount, p.skillCount);
 
@@ -8281,7 +8969,7 @@
 
                 if (html) html += '<div style="height:12px"></div>';
 
-                let details = '';
+                let details;
 
                 if (solved.conflicts && solved.conflicts.length) {
                     details = solved.conflicts.map(c => {
@@ -8352,9 +9040,7 @@
 
         allSelected.forEach(item => {
             if (item.Prerequisite && item.PrerequisiteCodes) {
-                if (pc && checkPrereqsMet(item.PrerequisiteCodes, pc)) {
-                    p.ack[item.Code] = true;
-                } else if (!(item.Code in p.ack)) {
+                if (!(item.Code in p.ack)) {
                     p.ack[item.Code] = false;
                 }
 
@@ -8367,37 +9053,241 @@
             html += '<p class="seclbl">Prerequisites</p>';
 
             preI.forEach(item => {
-                const ok = p.ack[item.Code];
-                const autoMet = pc && checkPrereqsMet(item.PrerequisiteCodes, pc);
+                const manualConfirmed =
+                    !!p.ack[item.Code];
 
-                if (!ok) unPre = true;
+                const autoMet =
+                    pc &&
+                    checkPrereqsMet(
+                        item.PrerequisiteCodes,
+                        pc
+                    );
+
+                const planning =
+                    evaluatePrerequisitePlanning(
+                        item.PrerequisiteCodes,
+                        currentPeriod
+                    );
+
+                // Transcript has fully verified it.
                 if (autoMet) {
                     html += `
-                    <div class="alrt a-ok">
-                        <span class="aico">✓</span>
-                        <div class="abdy">
-                            <strong>Prerequisites met</strong>
-                            <p><em>${item.Code} — ${item.Title}</em> requires ${formatPrereqs(item.PrerequisiteCodes)} Verified from your transcript.</p>
+            <div class="alrt a-ok">
+                <span class="aico">✓</span>
+                <div class="abdy">
+                    <strong>Prerequisites met</strong>
+                    <p>
+                        <em>${esc(item.Code)} — ${esc(item.Title)}</em>
+                        requires ${formatPrereqs(item.PrerequisiteCodes)}.
+                        Verified from your transcript.
+                    </p>
+                </div>
+            </div>
+        `;
+
+                    return;
+                }
+
+                // Every requirement is either already completed or planned earlier. Build an overview of every plan that satisfies the prerequisite conditionally.
+                if (planning.conditional) {
+                    conditionalPre = true;
+
+                    const solutionHtml =
+                        buildPrerequisiteSolutionsHtml(
+                            planning
+                        );
+
+                    html += `
+        <div class="alrt a-warn">
+            <span class="aico">⚠</span>
+
+            <div class="abdy">
+                <strong>
+                    Conditional prerequisite
+                </strong>
+
+                <p>
+                    <em>
+                        ${esc(item.Code)} -
+                        ${esc(item.Title)}
+                    </em>
+                    requires
+                    ${formatPrereqs(
+                        item.PrerequisiteCodes
+                    )}.
+                </p>
+
+                <div style="margin-top:6px">
+                    ${solutionHtml}
+                </div>
+
+                <div class="guidance">
+                    Choose one of the compatible
+                    earlier-period plan combinations
+                    listed above and successfully
+                    complete the required module
+                    before starting
+                    <strong>
+                        ${esc(item.Code)}
+                    </strong>.
+                </div>
+            </div>
+        </div>
+    `;
+
+                    return;
+                }
+
+
+                // The required modules are present somewhere in the planner, but only in incompatible alternatives from the same period.
+
+                if (planning.conflict) {
+                    html += `
+        <div class="alrt a-warn">
+            <span class="aico">⚠</span>
+
+            <div class="abdy">
+                <strong>
+                    Planned prerequisites conflict
+                </strong>
+
+                <p>
+                    <em>
+                        ${esc(item.Code)} -
+                        ${esc(item.Title)}
+                    </em>
+                    requires
+                    ${formatPrereqs(
+                        item.PrerequisiteCodes
+                    )}.
+                </p>
+
+                <div class="guidance">
+                    The required modules are present
+                    in your earlier-period plans,
+                    but they are split across
+                    alternative plans within the
+                    same period. Since only one
+                    A/B/C option can be chosen for
+                    that period, the prerequisite
+                    is not currently satisfied.
+                </div>
+            </div>
+        </div>
+    `;
+                }
+
+                // Existing manual confirmation.
+                if (manualConfirmed) {
+                    html += `
+            <div class="pb conf" id="pb-${item.Code}">
+                <input
+                    type="checkbox"
+                    id="ck-${item.Code}"
+                    checked
+                    onchange="acknowledgeCheck(
+                        '${item.Code}',
+                        this.checked
+                    )"
+                >
+
+                <label for="ck-${item.Code}">
+                    To take
+                    <strong>${item.Code} — ${item.Title}</strong>
+                    you must have completed or have a waiver for:
+                    <span class="pc">
+                        ${formatPrereqs(item.PrerequisiteCodes)}
+                    </span>.
+                    <span class="ph">
+                        You have confirmed this requirement.
+                    </span>
+                </label>
+            </div>
+        `;
+
+                    return;
+                }
+
+                unPre = true;
+
+                const uniqueAvailability =
+                    planning.availability || [];
+
+                const availabilityHtml =
+                    uniqueAvailability.length
+                        ? `
+                <div class="alrt a-inf" style="margin-top:8px">
+                    <span class="aico">ℹ</span>
+                    <div class="abdy">
+                        <strong>
+                            Prerequisite available in an earlier period
+                        </strong>
+
+                        ${uniqueAvailability.map(match => `
+                            <p>
+                                <strong>${esc(match.code)}</strong>
+                                ${match.title && match.title !== match.code
+                            ? `— ${esc(match.title)}`
+                            : ''
+                        }
+                                is available in
+                                <strong>${esc(match.period)}</strong>.
+                                Switch deadline:
+                                <strong>${esc(match.deadline)}</strong>.
+                            </p>
+                        `).join('')}
+
+                        <div class="guidance">
+                            You could add this prerequisite to one of
+                            your plans for the earlier period before
+                            the switch deadline.
                         </div>
                     </div>
-                `;
-                } else {
-                    html += `
-                    <div class="pb ${ok ? 'conf' : ''}" id="pb-${item.Code}">
-                        <input type="checkbox" id="ck-${item.Code}" ${ok ? 'checked' : ''} onchange="acknowledgeCheck('${item.Code}', this.checked)">
-                        <label for="ck-${item.Code}">
-                            To take <strong>${item.Code} — ${item.Title}</strong> you must have completed or have a waiver for:
-                            <span class="pc">${formatPrereqs(item.PrerequisiteCodes)}</span>.
-                            <span class="ph">Check this box to confirm.</span>
-                        </label>
-                    </div>
-                    ${!ok ? `
-                    <div class="guidance">
-                        Do not have the prerequisite or waiver?
-                        <a href="${getWaiverEmailLink(item, item.PrerequisiteCodes)}" class="btn-waiver" target="_blank" style="margin-left: 8px; text-decoration: none;">Request Waiver</a>
-                    </div>` : ''}
-                `;
-                }
+                </div>
+            `
+                        : '';
+
+                html += `
+        <div class="pb" id="pb-${item.Code}">
+            <input
+                type="checkbox"
+                id="ck-${item.Code}"
+                onchange="acknowledgeCheck(
+                    '${item.Code}',
+                    this.checked
+                )"
+            >
+
+            <label for="ck-${item.Code}">
+                To take
+                <strong>${item.Code} — ${item.Title}</strong>
+                you must have completed or have a waiver for:
+                <span class="pc">
+                    ${formatPrereqs(item.PrerequisiteCodes)}
+                </span>.
+                <span class="ph">
+                    Check this box to confirm.
+                </span>
+            </label>
+        </div>
+
+        ${availabilityHtml}
+
+        <div class="guidance">
+            Do not have the prerequisite or waiver?
+            <a
+                href="${getWaiverEmailLink(
+                    item,
+                    item.PrerequisiteCodes
+                )}"
+                class="btn-waiver"
+                target="_blank"
+                style="margin-left:8px;text-decoration:none"
+            >
+                Request Waiver
+            </a>
+        </div>
+    `;
             });
         }
 
@@ -8429,6 +9319,9 @@
         } else if (unPre) {
             sEl.className = 'spill sp-warn';
             sEl.textContent = '! Confirm prerequisites';
+        } else if (conditionalPre) {
+            sEl.className = 'spill sp-warn';
+            sEl.textContent = '⚠ Conditional prerequisite';
         } else if (loadWarning) {
             sEl.className = 'spill sp-warn';
             sEl.textContent = '⚠ Conditional workload';
@@ -8540,7 +9433,7 @@
         // transcript is loaded, whether it's been completed.
         let checksHtml = '';
         if (entry) {
-            let noteColor = 'var(--g5)', noteText = '';
+            let noteColor = 'var(--g5)', noteText;
             if (pc && checkPrereqsMet(entry.PrerequisiteCodes, pc)) {
                 noteColor = 'var(--ok)';
                 noteText = 'Transcript shows this is complete \u2713';
@@ -8563,6 +9456,73 @@
         sEl.className = 'spill sp-ok';
         sEl.textContent = '\u2713 Ready to print';
         btn.disabled = false;
+    }
+
+    function getPrerequisiteDisplayStatus(item) {
+        if (
+            !item?.Prerequisite ||
+            !item.PrerequisiteCodes
+        ) {
+            return {
+                state: 'none',
+                color: 'var(--g5)',
+                short: '',
+                label: ''
+            };
+        }
+
+        const transcriptMet =
+            !!APP.transcript &&
+            checkPrereqsMet(
+                item.PrerequisiteCodes,
+                APP.transcript.computed.passedCodes
+            );
+
+        if (transcriptMet) {
+            return {
+                state: 'verified',
+                color: 'var(--ok)',
+                short: '✓',
+                label:
+                    'Verified from transcript ✓'
+            };
+        }
+
+        const planning =
+            evaluatePrerequisitePlanning(
+                item.PrerequisiteCodes,
+                currentPeriod
+            );
+
+        if (planning.conditional) {
+            return {
+                state: 'conditional',
+                color: 'var(--warn)',
+                short: '⚠',
+                label:
+                    'Conditional - compatible earlier-period plan exists ⚠'
+            };
+        }
+
+        if (PLANS[act]?.ack?.[item.Code]) {
+            return {
+                state: 'confirmed',
+                color: 'var(--ok)',
+                short: '✓',
+                label:
+                    'Manually confirmed ✓'
+            };
+        }
+
+        return {
+            state: 'unresolved',
+            color: 'var(--warn)',
+            short: '⚠',
+            label:
+                planning.conflict
+                    ? 'Earlier planned prerequisites are incompatible ⚠'
+                    : 'Unconfirmed ⚠'
+        };
     }
 
     function buildSummary() {
@@ -8640,11 +9600,31 @@
 
         // Prerequisites
         allItems.forEach(item => {
-            if (
-                item.Prerequisite &&
-                item.PrerequisiteCodes &&
-                !p.ack[item.Code]
-            ) {
+            if (!item.Prerequisite || !item.PrerequisiteCodes) return;
+
+            const transcriptMet =
+                !!APP.transcript &&
+                checkPrereqsMet(
+                    item.PrerequisiteCodes,
+                    APP.transcript.computed.passedCodes
+                );
+
+            if (transcriptMet) return;
+
+            const planning =
+                evaluatePrerequisitePlanning(
+                    item.PrerequisiteCodes,
+                    currentPeriod
+                );
+
+            if (planning.conditional) {
+                iss.push(
+                    `Conditional prereq: ${item.Code} depends on successfully completing an earlier planned prerequisite`
+                );
+                return;
+            }
+
+            if (!p.ack[item.Code]) {
                 iss.push(`Unconfirmed prereq: ${item.Code}`);
             }
         });
@@ -8681,14 +9661,21 @@
             let prereqInfo = '';
 
             if (course.Prerequisite && course.PrerequisiteCodes) {
-                const met = p.ack[course.Code];
+                const prereqStatus =
+                    getPrerequisiteDisplayStatus(course);
 
                 prereqInfo = `
-                <div style="font-size:10.5px;margin-top:3px;color:${met ? 'var(--ok)' : 'var(--warn)'}">
-                    Prereq: ${esc(course.PrerequisiteCodes)} ${met ? '✓' : '⚠'}
-                </div>
-            `;
+        <div style="
+            font-size:10.5px;
+            margin-top:3px;
+            color:${prereqStatus.color}
+        ">
+            Prereq: ${esc(course.PrerequisiteCodes)}
+            ${prereqStatus.short}
+        </div>
+    `;
             }
+
             let coreqInfo = '';
 
             if (course.Corequisite && course.CorequisiteOf) {
@@ -8732,14 +9719,21 @@
             let prereqInfo = '';
 
             if (skill.Prerequisite && skill.PrerequisiteCodes) {
-                const met = p.ack[skill.Code];
+                const prereqStatus =
+                    getPrerequisiteDisplayStatus(skill);
 
                 prereqInfo = `
-                <div style="font-size:10.5px;margin-top:3px;color:${met ? 'var(--ok)' : 'var(--warn)'}">
-                    Prereq: ${esc(skill.PrerequisiteCodes)} ${met ? '✓' : '⚠'}
-                </div>
-            `;
+        <div style="
+            font-size:10.5px;
+            margin-top:3px;
+            color:${prereqStatus.color}
+        ">
+            Prereq: ${esc(skill.PrerequisiteCodes)}
+            ${prereqStatus.short}
+        </div>
+    `;
             }
+
             let coreqInfo = '';
 
             if (skill.Corequisite && skill.CorequisiteOf) {
@@ -8838,13 +9832,20 @@
         `;
 
             preItems.forEach(item => {
-                const met = p.ack[item.Code];
+                const prereqStatus =
+                    getPrerequisiteDisplayStatus(item);
 
                 checksHtml += `
-                <div style="font-size:12px;padding:4px 0;color:${met ? 'var(--ok)' : 'var(--warn)'}">
-                    <strong>${esc(item.Code)}</strong> requires ${esc(item.PrerequisiteCodes)} — ${met ? 'Confirmed ✓' : 'Unconfirmed ⚠'}
-                </div>
-            `;
+                    <div style="
+                        font-size:12px;
+                        padding:4px 0;
+                        color:${prereqStatus.color}
+                    ">
+                        <strong>${esc(item.Code)}</strong>
+                        requires ${esc(item.PrerequisiteCodes)}
+                        - ${prereqStatus.label}
+                    </div>
+                `;
             });
             coItems.forEach(ci => {
                 checksHtml += `
@@ -9773,6 +10774,93 @@
         });
     }
 
+    //lets app be aware of courses in every period instead of just the one that is loaded
+    function parsePeriodModulesForIndex(text, period) {
+        const lines = text
+            .split(/\r?\n/)
+            .filter(line => line.trim());
+
+        let headerIndex = -1;
+
+        for (let i = 0; i < lines.length; i++) {
+            const row = parseRow(lines[i]);
+
+            if (row[0] === 'Slot') {
+                headerIndex = i;
+                break;
+            }
+        }
+
+        if (headerIndex < 0) return [];
+
+        const headers = parseRow(lines[headerIndex]);
+        const items = [];
+
+        for (let i = headerIndex + 1; i < lines.length; i++) {
+            const row = parseRow(lines[i]);
+
+            if (row.length < 3 || !row[1]) continue;
+
+            const item = {};
+
+            headers.forEach((header, index) => {
+                item[header] = (row[index] || '').trim();
+            });
+
+            item.Corequisite =
+                item.Corequisite?.toUpperCase() === 'TRUE';
+
+            item.Prerequisite =
+                item.Prerequisite?.toUpperCase() === 'TRUE';
+
+            item.Days = item.Days
+                ? item.Days.split(/\s*,\s*/)
+                    .map(day => day.trim())
+                    .filter(Boolean)
+                : [];
+
+            item.CorequisiteOf =
+                (item.CorequisiteOf || '').trim();
+
+            item.PrerequisiteCodes =
+                (item.PrerequisiteCodes || '').trim();
+
+            item.Bundle =
+                (item.Bundle || '').trim();
+
+            item.Period = period;
+
+            items.push(item);
+        }
+
+        return items;
+    }
+
+    async function loadCrossPeriodData() {
+        await Promise.all(
+            PERIOD_ORDER.map(async period => {
+                try {
+                    const text = await loadText(
+                        DATA_PATHS.periods[period],
+                        `period_${period}`
+                    );
+
+                    PERIOD_TEXT[period] = text;
+                    PERIOD_DATA[period] =
+                        parsePeriodModulesForIndex(text, period);
+
+                } catch (err) {
+                    console.warn(
+                        `Could not load cross-period data for ${period}:`,
+                        err
+                    );
+
+                    PERIOD_DATA[period] = [];
+                }
+            })
+        );
+    }
+
     // Init
     async function fetchTextWithFallback(paths, cacheKey) {
         const sources = Array.isArray(paths) ? paths : [paths];
@@ -9962,6 +11050,7 @@
 
         try {
             await loadDataFiles();
+            await loadCrossPeriodData();
 
             const savedState = loadPlannerState();
 
@@ -9985,7 +11074,7 @@
 
             markCurrentPeriod();
 
-            const csv = await loadText(DATA_PATHS.periods[startP], `period_${startP}`);
+            const csv = PERIOD_TEXT[startP] || await loadText(DATA_PATHS.periods[startP], `period_${startP}`);
             load(csv);
 
             syncCustomLoadToggle();

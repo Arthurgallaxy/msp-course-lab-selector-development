@@ -1,8 +1,8 @@
 {
-  "latestVersion": "4.2.1",
-  "priority": "low",
+  "latestVersion": "4.2.2",
+  "priority": "medium",
   "title": "Update available",
-  "message": "Changed Bene Meritum to Honours, and adjusted the grade required according to the MSP Rules & Regulations",
+  "message": "Modified how prerequisites work to count a planned course (for example you plan calculus in P4) to count as a conditional prerequisite for later courses (in this example, any course in P5 that requires MAT2006)",
   "downloadUrl": "https://github.com/Arthurgallaxy/msp-course-lab-selector-development/releases/latest",
   "changelogUrl": "https://github.com/Arthurgallaxy/msp-course-lab-selector-development/releases/latest",
   "minimumSupportedVersion": "4.1.8"

@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MSP Course Planner v4.0</title>
+    <title>MSP Course Planner</title>
     <link id="appFavicon" rel="icon" type="image/png" href="assets/favicon.png">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=DM+Sans:wght@400;500;600;700&display=swap"
           rel="stylesheet">
@@ -3771,6 +3771,39 @@
             }
         }
 
+        /* Keep period selection prominent and secondary actions below navigation. */
+        .sidebar > * { flex-shrink: 0; }
+        .sb-brand { padding: 20px 24px 16px; }
+        .sb-meta { margin: 16px 14px 8px; padding: 12px; }
+        .sb-meta::before { content: none; }
+        .sb-meta > #mp, .sb-meta > #mv, .sb-meta > #mc { display: none !important; }
+        .pd-hdr { color: var(--sky); font-size: 11px; }
+        .pd-btn { padding: 8px 10px; }
+        .pd-grid { margin-bottom: 8px; }
+        .sb-nav { flex: 1; padding: 12px 14px; }
+        .sb-nav .sb-link { padding: 9px 12px; }
+        .sb-tools { margin-top: 0; padding: 12px 14px; border-top: 1px solid rgba(255,255,255,.1); }
+        .sb-footer { margin-top: 0; border-top: 1px solid rgba(255,255,255,.1); }
+        .schedule-freshness { margin-top: 10px; padding-top: 10px; border-top: 1px solid rgba(255,255,255,.12); font-size: 10px; line-height: 1.5; }
+        #scheduleSource { display: block; color: #a5e4c4; font-weight: 600; }
+        #scheduleChecked { margin-top: 3px; color: rgba(255,255,255,.65); }
+        .schedule-freshness:not([data-source="online"]) #scheduleSource { color: #ffd49b; }
+        .sb-tools .sb-link { padding: 8px 12px; }
+        .planner-backup { margin: auto 14px 16px; padding: 12px; border: 1px solid rgba(255,255,255,.14); border-radius: 12px; color: rgba(255,255,255,.85); }
+        .sb-backup-title { font-size: 12px; font-weight: 600; margin-bottom: 6px; }
+        .planner-backup p { margin: 0; font-size: 11px; line-height: 1.5; overflow-wrap: anywhere; }
+        .planner-backup small { display: block; margin-top: 5px; font-size: 10px; line-height: 1.5; color: rgba(255,255,255,.6); }
+        .planner-backup-actions { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+        .planner-backup .btn { flex: 1; justify-content: center; padding: 8px 6px; font-size: 11px; color: #fff; background: rgba(255,255,255,.07); border: 1px solid rgba(255,255,255,.22); }
+        .planner-backup .btn:hover { background: rgba(255,255,255,.15); }
+        .planner-backup .btn:disabled { opacity: .45; }
+        .planner-backup .btn:focus-visible, .pd-btn:focus-visible { outline: 2px solid var(--sky); outline-offset: 3px; }
+        .planner-backup [hidden] { display: none; }
+        #plannerSaveRetry { flex-basis: 100%; }
+        #plannerBackupStatus:not(:empty) { margin-top: 10px; }
+        #plannerSaveStatus[data-state="saved"] { color: #a5e4c4; }
+        #plannerSaveStatus[data-state="error"], #plannerSaveStatus[data-state="blocked"] { color: #ffd49b; font-weight: 600; }
+        @media print { .planner-backup { display: none; } }
     </style>
 </head>
 <body>
@@ -3792,6 +3825,7 @@
             <div class="sb-title">MSP Course Planner</div>
             <div class="sb-sub">Maastricht Science Programme<br>Faculty of Science &amp; Engineering</div>
         </div>
+
         <nav class="sb-nav">
             <div class="sb-nav-label">Navigation</div>
             <a class="sb-link active" href="#dashboard" data-view="dashboard"
@@ -3882,11 +3916,29 @@
             <div class="pd-meta"><strong id="mc2">Loading&hellip;</strong><span id="mc2sub"
                                                                                 style="display:block;opacity:.75;margin-top:1px"></span>
             </div>
+            <div class="schedule-freshness" id="scheduleFreshness" role="status" aria-live="polite" data-source="loading">
+                <strong id="scheduleSource">Checking schedule…</strong>
+                <span id="scheduleChecked">Loading the selected period’s data.</span>
+            </div>
             <span id="mp" style="display:none"></span>
             <span id="mv" style="display:none"></span>
             <span id="mc" style="display:none"></span>
 
         </div>
+        <section class="planner-backup" aria-label="Plan saving and backups">
+            <div>
+                <div class="sb-backup-title">Plan backups</div>
+                <p id="plannerSaveStatus" role="status" aria-live="polite">Loading saved plans…</p>
+                <small>Backups include all periods and plans A–C. Transcripts and starred courses are not included.</small>
+            </div>
+            <div class="planner-backup-actions">
+                <button type="button" class="btn btn-gh" id="plannerSaveRetry" onclick="savePlannerState()" hidden>Retry saving</button>
+                <button type="button" class="btn btn-gh" id="plannerExport" onclick="exportPlannerBackup()" disabled>Export backup</button>
+                <button type="button" class="btn btn-gh" id="plannerImport" onclick="document.getElementById('plannerBackupFile').click()" disabled>Import backup</button>
+                <input type="file" id="plannerBackupFile" accept=".json,application/json" hidden onchange="importPlannerBackup(this)">
+            </div>
+            <p id="plannerBackupStatus" role="status" aria-live="polite"></p>
+        </section>
         <div class="sb-footer">
             <img id="logoMain" src="assets/logo-main.png" alt="msp" class="logo-main">
             <div class="sb-privacy">Planner and transcript data stay in your browser.
@@ -3900,6 +3952,7 @@
         <input type="file" id="pdff" accept=".pdf" style="display:none">
 
         <main class="main" id="mainEl">
+
             <div id="loading">
                 <div class="spin"></div>
                 <p style="font-size:13px">Loading schedule&hellip;</p></div>
@@ -3975,7 +4028,7 @@
                                     id="customLoadToggle"
                                     onchange="toggleCustomLoad()"
                                     style="width:16px;height:16px;accent-color:var(--navy)">
-                                    <span>Use a custom study load
+                            <span>Use a custom study load
                                         <span style="display:block;font-size:11.5px;color:var(--g4);margin-top:2px">
                                             Only change this if you are taking an unusual number of courses, or skills.
                                         </span>
@@ -4007,7 +4060,7 @@
                     <div class="card" id="coursecard">
                         <div class="card-h">
                             <div class="step">1</div>
-                            <h2>Select Your Courses</h2><span class="hint">2 courses from different time slots</span>
+                            <h2>Select Your Courses</h2><span class="hint" id="courseLoadHint">2 courses from different time slots</span>
                         </div>
                         <div class="card-b">
                             <div class="field"><label class="flbl">Course 1</label>
@@ -4112,9 +4165,7 @@
             <div style="font-size:10px;color:var(--g4);margin-top:2px">This tool is for planning purposes only and does
                 not replace official academic advising. Always verify with your Academic Advisor.
             </div>
-            <div style="font-size:9px;color:var(--g4);margin-top:4px;opacity:.6">MSP Course Planner v2.0 &middot;
-                Self-contained edition &middot; Period 5, 2025&ndash;2026
-            </div>
+            <div id="appFooterVersion" style="font-size:9px;color:var(--g4);margin-top:4px;opacity:.6">MSP Course Planner</div>
         </footer>
     </div><!-- /content-area -->
 </div><!-- /app-layout -->
@@ -4125,7 +4176,7 @@
     // ═══════════════════════════════════════════════════
 
     //THIS VERSION SHOULD BE CHANGED ON EVERYUPDATE (to the same as the version.json file) OR IT WILL CAUSE PERMANENT UPDATE POPUPS
-    const APP_VERSION = '4.2.2';
+    const APP_VERSION = '4.2.3';
     const updateurl = 'https://raw.githubusercontent.com/Arthurgallaxy/msp-course-lab-selector-development/main/MSP%20Course%20Planner%20V4/version.json';
     const FEEDBACK_ENDPOINT = 'https://formspree.io/f/maeyaoen';
 
@@ -4865,7 +4916,17 @@
     let act = 'A', cmpMode = false;
     let activeView = 'dashboard';
     let catFilter = 'all';
-    let starredCourses = new Set(JSON.parse(localStorage.getItem('msp-starred') || '[]'));
+    let starredCourses = loadStarredCourses();
+
+    function loadStarredCourses() {
+        try {
+            const saved = JSON.parse(localStorage.getItem('msp-starred') || '[]');
+            return new Set(Array.isArray(saved) ? saved.filter(code => typeof code === 'string') : []);
+        } catch (err) {
+            console.warn('Could not restore starred courses:', err);
+            return new Set();
+        }
+    }
 
     const APP = {
         config: null,
@@ -4900,6 +4961,13 @@
         if (!plan) return new Set();
 
         const codes = new Set();
+        if (plan.bundle) {
+            // Individual selections are kept only so disabling a bundle can restore them.
+            // They must not satisfy prerequisites while the bundle is active.
+            return new Set((PERIOD_DATA[period] || [])
+                .filter(item => item.Bundle === plan.bundle)
+                .map(item => item.Code));
+        }
 
         plan.courses
             .slice(0, plan.courseCount)
@@ -4918,11 +4986,6 @@
                 if (code) codes.add(code);
             });
 
-        if (plan.bundle) {
-            (PERIOD_DATA[period] || [])
-                .filter(item => item.Bundle === plan.bundle)
-                .forEach(item => codes.add(item.Code));
-        }
 
         return codes;
     }
@@ -5306,12 +5369,12 @@
 
                 const label =
                     planning.solutions.length > 1
-                        ? `Option ${index + 1}`
-                        : 'Planned route';
+                        ? `Option ${index + 1}:`
+                        : '';
 
                 return `
                 <div style="margin-top:4px">
-                    <strong>${label}:</strong>
+                    <strong>${label}</strong>
                     ${parts}
                 </div>
             `;
@@ -5319,24 +5382,45 @@
             .join('');
     }
 
+    let plannerReady = false;
+    let plannerStorageWarning = '';
+
+    function setPlannerSaveStatus(kind, message) {
+        const status = document.getElementById('plannerSaveStatus');
+        status.dataset.state = kind;
+        status.textContent = message;
+        document.getElementById('plannerSaveRetry').hidden = kind !== 'error';
+    }
+
+    function plannerSnapshot() {
+        return {
+            schemaVersion: PLANNER_STATE_VERSION,
+            currentPeriod,
+            activePlan: act,
+            plans: plansForStorage()
+        };
+    }
+
     //functions for saving user data
     function savePlannerState() {
-        if (plannerStateReadOnly) return;
+        if (!plannerReady) return false;
+        if (plannerStateReadOnly) {
+            setPlannerSaveStatus('blocked', plannerStorageWarning);
+            return false;
+        }
 
         try {
-            const state = {
-                schemaVersion: PLANNER_STATE_VERSION,
-                currentPeriod,
-                activePlan: act,
-                plans: plansForStorage()
-            };
+            const state = plannerSnapshot();
 
             localStorage.setItem(
                 PLANNER_STATE_KEY,
                 JSON.stringify(state)
             );
+            setPlannerSaveStatus('saved', 'Saved in this browser');
+            return true;
         } catch (err) {
-            console.warn('Could not save planner state:', err);
+            setPlannerSaveStatus('error', 'Couldn’t save in this browser. Retry saving or export a backup to keep your changes.');
+            return false;
         }
     }
 
@@ -5344,6 +5428,9 @@
 
     function schedulePlannerStateSave() {
         clearTimeout(plannerSaveTimer);
+        if (!plannerReady) return;
+        setPlannerSaveStatus(plannerStateReadOnly ? 'blocked' : 'saving',
+            plannerStateReadOnly ? plannerStorageWarning : 'Saving…');
 
         plannerSaveTimer = setTimeout(() => {
             savePlannerState();
@@ -5388,11 +5475,14 @@
             const saved = JSON.parse(raw);
 
             if (!saved || typeof saved !== 'object' || !saved.plans) {
-                return null;
+                throw new Error('Invalid saved plans');
             }
 
             // Saved states created before schemaVersion existed are treated as v1.
             const savedVersion = Number(saved.schemaVersion ?? 1);
+            if (!Number.isInteger(savedVersion) || savedVersion < 1) {
+                throw new Error('Invalid saved plan version');
+            }
 
             // If this state was created by a newer app version, do not load it and do NOT overwrite it.
             if (savedVersion > PLANNER_STATE_VERSION) {
@@ -5402,6 +5492,8 @@
                 );
 
                 plannerStateReadOnly = true;
+                plannerStorageWarning = 'Saving paused: your saved plans need a newer planner version. Open the latest version to restore them. You can export this session as a separate backup.';
+                setPlannerSaveStatus('blocked', plannerStorageWarning);
                 return null;
             }
 
@@ -5433,10 +5525,120 @@
             };
 
         } catch (err) {
-            console.warn('Could not restore planner state:', err);
+            plannerStateReadOnly = true;
+            plannerStorageWarning = 'Saving paused: existing plans could not be read. They have been left untouched. Export any changes before reloading.';
+            setPlannerSaveStatus('blocked', plannerStorageWarning);
             return null;
         }
     }
+
+    function setPlannerBackupStatus(message) {
+        document.getElementById('plannerBackupStatus').textContent = message;
+    }
+
+    function exportPlannerBackup() {
+        if (!plannerReady) return;
+        try {
+            const backup = { format: 'msp-planner-backup', exportedAt: new Date().toISOString(), ...plannerSnapshot() };
+            const blob = new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = `msp-plan-backup-${new Date().toISOString().replace(/[:.]/g, '-')}.json`;
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+            setTimeout(() => URL.revokeObjectURL(url), 1000);
+            setPlannerBackupStatus('Backup download started. Keep the JSON file to restore your plans later.');
+        } catch (err) {
+            setPlannerBackupStatus('Couldn’t export the backup. Please try again.');
+        }
+    }
+
+    function validatePlannerBackup(value) {
+        const object = v => v !== null && typeof v === 'object' && !Array.isArray(v);
+        const fail = () => { throw new Error('This file is not a valid MSP planner backup. Your plans have not changed.'); };
+        if (!object(value) || value.format !== 'msp-planner-backup') fail();
+        if (Number.isInteger(value.schemaVersion) && value.schemaVersion > PLANNER_STATE_VERSION) {
+            throw new Error('This backup needs a newer planner version. Open the latest version and import it there.');
+        }
+        if (value.schemaVersion !== PLANNER_STATE_VERSION || !object(value.plans)) fail();
+        const periods = ['P1', 'P2', 'P4', 'P5'];
+        const keys = ['A', 'B', 'C'];
+        if (!periods.includes(value.currentPeriod) || !keys.includes(value.activePlan)) fail();
+        const plans = {};
+        for (const period of periods) {
+            if (!object(value.plans[period])) fail();
+            plans[period] = {};
+            for (const key of keys) {
+                const p = value.plans[period][key];
+                if (!object(p) || typeof p.customLoad !== 'boolean' || typeof p.bundle !== 'string') fail();
+                if (!Number.isInteger(p.courseCount) || p.courseCount < 0 || p.courseCount > 4 ||
+                    !Number.isInteger(p.skillCount) || p.skillCount < 0 || p.skillCount > 5) fail();
+                for (const field of ['courses', 'skills']) {
+                    if (!Array.isArray(p[field]) || p[field].length !== 5 ||
+                        p[field].some(code => typeof code !== 'string' || code.length > 200)) fail();
+                }
+                if (!Array.isArray(p.externalCourses) || p.externalCourses.length !== 5) fail();
+                const externalCourses = p.externalCourses.map(ext => {
+                    if (!object(ext)) fail();
+                    const clean = {};
+                    for (const field of ['code', 'title', 'coordinator', 'slot']) {
+                        if (ext[field] !== undefined) {
+                            if (typeof ext[field] !== 'string' || ext[field].length > 2000) fail();
+                            clean[field] = ext[field];
+                        }
+                    }
+                    if (ext.days !== undefined) {
+                        if (!Array.isArray(ext.days) || ext.days.length > 10 ||
+                            ext.days.some(day => !/^(Mon|Tue|Wed|Thu|Fri) (AM|PM)$/.test(day))) fail();
+                        clean.days = [...ext.days];
+                    }
+                    return clean;
+                });
+                plans[period][key] = normalizePlan({ ...p, externalCourses, ack: {} });
+            }
+        }
+        return { schemaVersion: value.schemaVersion, currentPeriod: value.currentPeriod, activePlan: value.activePlan, plans };
+    }
+
+    async function importPlannerBackup(input) {
+        const file = input.files?.[0];
+        input.value = '';
+        if (!file || !plannerReady) return;
+        if (plannerStateReadOnly) {
+            setPlannerBackupStatus(plannerStorageWarning);
+            return;
+        }
+        try {
+            if (file.size > 1024 * 1024) throw new Error('Backup files must be smaller than 1 MB. Your plans have not changed.');
+            const backup = validatePlannerBackup(JSON.parse(await file.text()));
+            const csv = PERIOD_TEXT[backup.currentPeriod] || await loadText(DATA_PATHS.periods[backup.currentPeriod], `period_${backup.currentPeriod}`);
+            if (!csv.split(/\r?\n/).some(line => parseRow(line)[0] === 'Slot')) {
+                throw new Error('The schedule could not be loaded. Your plans have not changed. Try again later.');
+            }
+            if (!window.confirm('Replace all periods and plans A–C with this backup? Export your current plans first if you want to keep them. Transcript and starred courses will stay unchanged. Courses no longer in the current schedule may be removed.')) {
+                setPlannerBackupStatus('Import cancelled. Your plans have not changed.');
+                return;
+            }
+            clearTimeout(plannerSaveTimer);
+            for (const period of ['P1', 'P2', 'P4', 'P5']) ALL_PLANS[period] = backup.plans[period];
+            currentPeriod = backup.currentPeriod;
+            act = backup.activePlan;
+            PLANS = ALL_PLANS[currentPeriod];
+            document.querySelectorAll('.pd-btn').forEach(button => {
+                button.classList.toggle('active', button.getAttribute('data-p') === currentPeriod);
+            });
+            load(csv);
+            syncCustomLoadToggle();
+            buildFilterChips();
+            applyCatFilters();
+            setPlannerBackupStatus('Backup imported. Check the save status above and review your plans against the current schedule.');
+        } catch (err) {
+            setPlannerBackupStatus(err instanceof SyntaxError ? 'This file is not valid JSON. Your plans have not changed.' : err.message);
+        }
+    }
+
 
     function selectedCourses() {
         const p = PLANS[act];
@@ -5902,7 +6104,7 @@
             const gpaText = gpa === null ? 'No transcript GPA loaded.' : `Your current GPA is ${gpa.toFixed(1)}.`;
 
             note.innerHTML = `<strong>Conditional load.</strong> ${rule.label}. ${gpaText}`;
-            note.style.borderLeftColor = gpa === null ? 'var(--warn-bd)' : rule.minGpa < gpa ? 'var(--ok)' : 'var(--warn-bd)';
+            note.style.borderLeftColor = gpa === null ? 'var(--warn-bd)' : rule.minGpa <= gpa ? 'var(--ok)' : 'var(--warn-bd)';
             return;
         }
 
@@ -6129,8 +6331,11 @@
         const prMatch = text.match(/PR\s+[\d.,]+\s*\/\s*[\d.,]+\s*=\s*([\d.,]+)/i);
         if (prMatch) semester.progressRate = parseEUDecimal(prMatch[1]);
 
-        const cumMatch = text.match(/Cum\s*GPA\s+([\d.,]+)/i);
-        if (cumMatch) semester.cumGPA = parseEUDecimal(cumMatch[1]);
+        const cumMatch = text.match(/Cum\s*GPA\s+([\d.,]+)(?:\s+([A-F][+-]?)(?=\s|$))?/i);
+        if (cumMatch) {
+            semester.cumGPA = parseEUDecimal(cumMatch[1]);
+            semester.cumLetter = cumMatch[2]?.toUpperCase() || '';
+        }
     }
 
     function parseModuleRow(row){
@@ -6514,14 +6719,14 @@
 
         // ─── Quick Stats Row ───
         const pct = Math.round(c.totalECTSEarned / 180 * 100);
-        const gpaLetter = c.currentCumGPA >= 9 ? 'A+' : c.currentCumGPA >= 8 ? 'A' : c.currentCumGPA >= 7 ? 'B' : c.currentCumGPA >= 6 ? 'C' : 'D';
+        const gpaLetter = t.semesters[t.semesters.length - 1]?.cumLetter || '';
         html += `<div class="stats-row fade-in fade-in-d1">
     <div class="stat-card" onclick="toggleStatCard(this)">
       <div class="sc-val">${c.totalECTSEarned}</div><div class="sc-label">ECTS</div><div class="sc-sub">of 180</div>
       <div class="sc-tooltip"><span class="sc-close" onclick="event.stopPropagation();closeStatCard(this)">\u00D7</span><h4>ECTS Credits</h4>You have earned <strong>${c.totalECTSEarned}</strong> of the <strong>180 ECTS</strong> required to graduate.<br><br>Each course = 5 ECTS<br>Each practical = 2.5 ECTS<br>BTR = 30 ECTS<br><br><strong>${(180 - c.totalECTSEarned).toFixed(1)} ECTS</strong> remaining.</div>
     </div>
     <div class="stat-card" onclick="toggleStatCard(this)">
-      <div class="sc-val">${c.currentCumGPA.toFixed(1)}</div><div class="sc-label">GPA</div><div class="sc-sub">(${gpaLetter})</div>
+      <div class="sc-val">${c.currentCumGPA.toFixed(1)}</div><div class="sc-label">GPA</div><div class="sc-sub">${gpaLetter ? `(${esc(gpaLetter)})` : 'Transcript GPA'}</div>
       <div class="sc-tooltip"><span class="sc-close" onclick="event.stopPropagation();closeStatCard(this)">\u00D7</span><h4>Cumulative GPA</h4>Your grade point average across all semesters.<br><br>Scale: 1.0 \u2013 10.0<br>Pass threshold: 5.5<br><br><strong>\u2265 8.6</strong> = Summa Cum Laude<br><strong>\u2265 8.0</strong> = Cum Laude<br><strong>\u2265 7.4</strong> = Honours</div>
     </div>
     <div class="stat-card" onclick="toggleStatCard(this)">
@@ -6983,6 +7188,7 @@
             };
         }
         currentPeriod = p;
+        renderScheduleFreshness({ source: 'loading' });
 
         // Restore target period's plans
         PLANS = ALL_PLANS[p] || {A: emptyPlan(), B: emptyPlan(), C: emptyPlan()};
@@ -7012,6 +7218,7 @@
             if (typeof applyCatFilters === "function") applyCatFilters();
             if (typeof buildFilterChips === "function") buildFilterChips();
         } catch (err) {
+            renderScheduleFreshness({ source: 'unavailable' });
             console.error(`Could not load period ${p}:`, err);
             showScreen("err");
         }
@@ -7087,6 +7294,8 @@
         const mc2sub = document.getElementById('mc2sub');
         if (mc2) mc2.textContent = `${courses.length} courses \u00b7 ${labs.length} practicals`;
         if (mc2sub) mc2sub.textContent = cfgY ? `${cfgY}${cfgV ? '  \u00b7  v' + cfgV : ''}` : '';
+        document.title = `MSP Course Planner v${APP_VERSION}`;
+        document.getElementById('appFooterVersion').textContent = `MSP Course Planner v${APP_VERSION} · ${currentPeriod}${cfgY ? ', ' + cfgY : ''}`;
         document.getElementById('pp').textContent = cfgP && cfgY ? `Period ${cfgP}, ${cfgY}` : '';
         document.getElementById('pd').textContent = new Date().toLocaleDateString('en-GB', {
             day: 'numeric',
@@ -7095,6 +7304,11 @@
         });
         switchPlan(act);
         showScreen('pl');
+        renderScheduleFreshness();
+        plannerReady = true;
+        document.getElementById('plannerExport').disabled = false;
+        document.getElementById('plannerImport').disabled = plannerStateReadOnly;
+        savePlannerState();
     }
 
     // ═══════════════════════════════════════════════════
@@ -7626,6 +7840,9 @@
     }
 
     function renderCourseFields() {
+        const count = PLANS[act].courseCount;
+        document.getElementById('courseLoadHint').textContent = count === 0 ? 'No courses in this study load' :
+            count === 1 ? 'Select 1 course' : 'Select ' + count + ' courses from different time slots';
         const p = PLANS[act];
         const body = document.querySelector('#coursecard .card-b');
 
@@ -9386,7 +9603,6 @@
         // BTR
 
         let planECTS = 0;
-        const afterPlan = t.computed.totalECTSEarned + planECTS;
         if (PLANS[act].bundle) {
             const items = activeBundleItems();
             planECTS = items.reduce((sum, item) => {
@@ -9396,10 +9612,14 @@
             const selected = selectedCourses();
             const selectedLabs = selectedSkills();
 
-            planECTS = selected.length * 5 + selectedLabs.length * 2.5;
+            const alreadyPassed = t.computed.passedCodes;
+            const uniqueCourses = new Set(selected.filter(item => !alreadyPassed.has(item.Code)).map(item => item.Code));
+            const uniqueSkills = new Set(selectedLabs.filter(item => !alreadyPassed.has(item.Code)).map(item => item.Code));
+            planECTS = uniqueCourses.size * 5 + uniqueSkills.size * 2.5;
         }
+        const afterPlan = t.computed.totalECTSEarned + planECTS;
         if (!r.btr.eligible) {
-            tips.push(`After this period, you'll have ${afterPlan.toFixed(1)} ECTS \u2014 ${afterPlan >= 145 ? 'enough' : 'not enough'} for BTR eligibility (requires 145).`);
+            tips.push(`If you pass the selected new modules, you'll have ${afterPlan.toFixed(1)} ECTS \u2014 ${afterPlan >= 145 ? 'enough' : 'not enough'} for BTR eligibility (requires 145).`);
         }
 
         if (!tips.length) {
@@ -10407,38 +10627,38 @@
                         }
 
 
-                    // --- NEW WAIVER BUTTON LOGIC ---
+                        // --- NEW WAIVER BUTTON LOGIC ---
 
-                    let needsWaiver = false;
-                    if (item.Prerequisite && item.PrerequisiteCodes) {
-                        if (pc) {
-                            // If transcript is loaded, check if they are missing the prereq
-                            needsWaiver = !checkPrereqsMet(item.PrerequisiteCodes, pc);
-                        } else {
-                            // If no transcript is loaded, show the button just in case
-                            needsWaiver = true;
+                        let needsWaiver = false;
+                        if (item.Prerequisite && item.PrerequisiteCodes) {
+                            if (pc) {
+                                // If transcript is loaded, check if they are missing the prereq
+                                needsWaiver = !checkPrereqsMet(item.PrerequisiteCodes, pc);
+                            } else {
+                                // If no transcript is loaded, show the button just in case
+                                needsWaiver = true;
+                            }
                         }
+                        if (needsWaiver) {
+                            const waiverLink = getWaiverEmailLink(item, item.PrerequisiteCodes);
+                            html += `<div style="margin-top: 10px;"><a href="${waiverLink}" class="btn-waiver" target="_blank">Request Waiver</a></div>`;
+                        }
+                        html += '</div>';
+                    } else {
+                        html += '<p style="color:var(--g4);font-size:13px;padding-top:14px;font-style:italic">No detailed description available for this course.</p>';
                     }
-                    if (needsWaiver) {
-                        const waiverLink = getWaiverEmailLink(item, item.PrerequisiteCodes);
-                        html += `<div style="margin-top: 10px;"><a href="${waiverLink}" class="btn-waiver" target="_blank">Request Waiver</a></div>`;
-                    }
-                    html += '</div>';
-                } else {
-                    html += '<p style="color:var(--g4);font-size:13px;padding-top:14px;font-style:italic">No detailed description available for this course.</p>';
-                }
 
-                html += `<button class="detail-close" onclick="event.stopPropagation();closeCard('${item.Code}')">\u2190 Collapse details</button></div>`;
-            } // end if (desc)
+                    html += `<button class="detail-close" onclick="event.stopPropagation();closeCard('${item.Code}')">\u2190 Collapse details</button></div>`;
+                } // end if (desc)
 
+                html += '</div></div>';
+            }); // end items.forEach
             html += '</div></div>';
-        }); // end items.forEach
-        html += '</div></div>';
-    });// end order.forEach
+        });// end order.forEach
 
-    if (!total) html = '<div class="no-results"><span>\uD83D\uDD0D</span><p>No courses match your search. Try a different keyword.</p></div>';
-    document.getElementById('catalogue').innerHTML = html;
-    document.getElementById('resultCount').textContent = `Showing ${total} course${total !== 1 ? 's' : ''}`;
+        if (!total) html = '<div class="no-results"><span>\uD83D\uDD0D</span><p>No courses match your search. Try a different keyword.</p></div>';
+        document.getElementById('catalogue').innerHTML = html;
+        document.getElementById('resultCount').textContent = `Showing ${total} course${total !== 1 ? 's' : ''}`;
     }
 
     function toggleCard(code, event) {
@@ -10462,8 +10682,13 @@
     // STARRED COURSES
     // ═══════════════════════════════════════════════════
     function saveStarred() {
-        localStorage.setItem('msp-starred', JSON.stringify([...starredCourses]));
-    }
+        try {
+            localStorage.setItem('msp-starred', JSON.stringify([...starredCourses]));
+        } catch (err) {
+            console.warn('Could not save starred courses:', err);
+            alert('Your starred courses changed for this session, but could not be saved in this browser.');
+        }
+    }//added this because otherwise it could lead to the app not starting due to a loading issue
 
     function toggleStar(code, event) {
         event.stopPropagation();
@@ -10517,7 +10742,7 @@
             return `<div class="starred-chip"><span class="sc-code">${esc(c.Code)}</span><span>${esc(c.Title)}</span>${slot}<button class="sc-remove" onclick="removeStar('${c.Code}')" title="Remove">\u2715</button></div>`;
         }).filter(Boolean).join('');
         el.style.display = '';
-        el.innerHTML = `<h3>\u2B50 Your Starred Courses</h3><div class="starred-chips">${chips}</div>`;
+        el.innerHTML = `<h3>\u2B50 Your Starred Courses</h3><div class="starred-chips">${chips || '<p>No starred courses are offered in this period.</p>'}</div>`;
     }
 
     // ═══════════════════════════════════════════════════
@@ -10658,6 +10883,7 @@
             console.error('Transcript parse error:', err);
 
             resetTranscriptUploadZone();
+            e.target.value = '';
 
             return;
         }
@@ -10711,7 +10937,12 @@
         const f = e.target.files[0];
         if (!f) return;
         const r = new FileReader();
-        r.onload = ev => load(ev.target.result);
+        r.onload = ev => {
+            DATA_FRESHNESS[`period_${currentPeriod}`] = { source: 'uploaded' };
+            PERIOD_TEXT[currentPeriod] = ev.target.result;
+            PERIOD_DATA[currentPeriod] = parsePeriodModulesForIndex(ev.target.result, currentPeriod);
+            load(ev.target.result);
+        };
         r.readAsText(f);
         e.target.value = '';
     });
@@ -10862,62 +11093,86 @@
     }
 
     // Init
+    const DATA_FRESHNESS = {};
+
+    function renderScheduleFreshness(override) {
+        const status = document.getElementById('scheduleFreshness');
+        const label = document.getElementById('scheduleSource');
+        const detail = document.getElementById('scheduleChecked');
+        const info = override || DATA_FRESHNESS[`period_${currentPeriod}`] || { source: 'unknown' };
+        const date = info.checkedAt && new Date(info.checkedAt);
+        const checked = date && Number.isFinite(date.getTime()) ? date.toLocaleString(undefined, {
+            day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit'
+        }) : null;
+        const labels = { online: 'Online copy', cached: 'Cached copy', bundled: 'Bundled copy', uploaded: 'Imported schedule', loading: 'Checking schedule…', unavailable: 'Schedule unavailable', unknown: 'Source unknown' };
+        status.dataset.source = info.source;
+        label.textContent = `${currentPeriod} · ${labels[info.source] || labels.unknown}`;
+        detail.textContent = info.source === 'online' ? `Checked ${checked || 'this session'}.` :
+            info.source === 'cached' ? `${checked ? 'Last downloaded ' + checked + '.' : 'Download date unknown.'} Couldn’t check online; reload to try again.` :
+                info.source === 'bundled' ? 'Included with this app. Update date unknown; couldn’t check online.' :
+                    info.source === 'uploaded' ? 'Loaded from your CSV file; not checked online.' :
+                        info.source === 'loading' ? 'Checking the selected period’s data.' :
+                            info.source === 'unavailable' ? 'No usable schedule could be loaded. Reload or import a CSV.' : 'This schedule’s source could not be identified.';
+    }
+
+    async function fetchSourceText(url) {
+        const controller = new AbortController();
+        const timer = setTimeout(() => controller.abort(), 8000);
+        try {
+            const response = await fetch(url, { signal: controller.signal });
+            if (!response.ok) throw new Error(`${url} returned ${response.status}`);
+            return await response.text();
+        } finally {
+            clearTimeout(timer);
+        }
+    }
+
     async function fetchTextWithFallback(paths, cacheKey) {
         const sources = Array.isArray(paths) ? paths : [paths];
-        const isProbablyOffline = !navigator.onLine;
-
         const onlineSource = sources.find(src => src.startsWith('http'));
         const localSource = sources.find(src => !src.startsWith('http'));
-
-        // 1. Try online GitHub first
-        if (onlineSource && !isProbablyOffline) {
+        if (onlineSource && navigator.onLine) {
             try {
-                const r = await fetch(`${onlineSource}?v=${Date.now()}`);
-
-                if (!r.ok) {
-                    throw new Error(`${onlineSource} returned ${r.status}`);
-                }
-
-                const text = await r.text();
-
-                // 2. Cache latest online copy for offline use (this is cached on the browser and is lost if cookies are cleared or the user changes browsers)
+                const text = await fetchSourceText(`${onlineSource}?v=${Date.now()}`);
+                const checkedAt = new Date().toISOString();
+                DATA_FRESHNESS[cacheKey] = { source: 'online', checkedAt };
                 try {
+                    // Clear an older timestamp first so a partial write never reports the wrong date.
+                    localStorage.removeItem(`msp-cache-${cacheKey}-updated`);
                     localStorage.setItem(`msp-cache-${cacheKey}`, text);
-                    localStorage.setItem(`msp-cache-${cacheKey}-updated`, new Date().toISOString());
+                    localStorage.setItem(`msp-cache-${cacheKey}-updated`, checkedAt);
                 } catch (err) {
                     console.warn('Could not cache online data:', cacheKey, err);
                 }
-
                 return text;
             } catch (err) {
                 console.warn('Online fetch failed:', onlineSource, err);
             }
         }
-
-        // 3. Use cached online copy if available
         try {
             const cached = localStorage.getItem(`msp-cache-${cacheKey}`);
             if (cached) {
-                console.log('Using cached data:', cacheKey);
+                DATA_FRESHNESS[cacheKey] = {
+                    source: 'cached', checkedAt: localStorage.getItem(`msp-cache-${cacheKey}-updated`)
+                };
                 return cached;
             }
         } catch (err) {
             console.warn('Could not read cached data:', cacheKey, err);
         }
-
-        // 4. Fall back to bundled local file
         if (localSource) {
-            const r = await fetch(localSource);
-
-            if (!r.ok) {
-                throw new Error(`${localSource} returned ${r.status}`);
+            try {
+                const text = await fetchSourceText(localSource);
+                DATA_FRESHNESS[cacheKey] = { source: 'bundled' };
+                return text;
+            } catch (err) {
+                console.warn('Bundled data failed:', localSource, err);
             }
-
-            return await r.text();
         }
-
+        DATA_FRESHNESS[cacheKey] = { source: 'unavailable' };
         throw new Error(`No usable data source for ${cacheKey}`);
     }
+
 
     //cache logo images
     async function cacheRemoteImage(imgId, remoteUrl, localUrl, cacheKey) {
@@ -11088,6 +11343,7 @@
                 switchView(initialHash);
             }
         } catch (err) {
+            renderScheduleFreshness({ source: 'unavailable' });
             console.error('Load error:', err);
             showScreen('err');
         }

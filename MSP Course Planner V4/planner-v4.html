@@ -1063,6 +1063,34 @@
             text-decoration: underline
         }
 
+        .prereq-route-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 2px 7px;
+            border: 1px solid var(--inf-bd);
+            border-radius: 5px;
+            background: var(--inf-bg);
+            color: var(--inf);
+            font: inherit;
+            font-size: inherit;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all .15s;
+            vertical-align: baseline;
+        }
+
+        .prereq-route-link:hover {
+            background: var(--inf);
+            color: #fff;
+            border-color: var(--inf);
+        }
+
+        .prereq-route-link:focus-visible {
+            outline: 2px solid var(--inf);
+            outline-offset: 2px;
+        }
+
         .seclbl {
             font-size: 10px;
             font-weight: 700;
@@ -4176,7 +4204,7 @@
     // ═══════════════════════════════════════════════════
 
     //THIS VERSION SHOULD BE CHANGED ON EVERYUPDATE (to the same as the version.json file) OR IT WILL CAUSE PERMANENT UPDATE POPUPS
-    const APP_VERSION = '4.2.3';
+    const APP_VERSION = '4.2.4';
     const updateurl = 'https://raw.githubusercontent.com/Arthurgallaxy/msp-course-lab-selector-development/main/MSP%20Course%20Planner%20V4/version.json';
     const FEEDBACK_ENDPOINT = 'https://formspree.io/f/maeyaoen';
 
@@ -5360,7 +5388,20 @@
                             )
                         )
                         .map(entry =>
-                            `<strong>${esc(entry.period)} Plan ${esc(entry.planKey)}</strong>: ` +
+                            `<button
+                                type="button"
+                                class="prereq-route-link"
+                                data-period="${esc(entry.period)}"
+                                data-plan="${esc(entry.planKey)}"
+                                onclick="inspectPrerequisiteRoute(
+                                    this.dataset.period,
+                                    this.dataset.plan
+                                )"
+                                title="Inspect ${esc(entry.period)} Plan ${esc(entry.planKey)}"
+                            >
+                                ${esc(entry.period)} Plan ${esc(entry.planKey)}
+                                <span aria-hidden="true">↗</span>
+                            </button>: ` +
                             entry.codes
                                 .map(esc)
                                 .join(', ')
@@ -5380,6 +5421,24 @@
             `;
             })
             .join('');
+    }
+
+    async function inspectPrerequisiteRoute(period, planKey){
+        if (!PERIOD_ORDER.includes(period) || !['A','B','C'].includes(planKey)) {
+            return;
+        }
+        try {
+            switchView('planner');
+
+            if (currentPeriod !== period){
+                await switchPeriod(period);
+            }
+
+            switchPlan(planKey);
+
+            requestAnimationFrame(() => {document.getElementById(`tab-${planKey}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' });});
+    } catch (err) {
+        console.error(`could not inspect ${period} Plan ${planKey}`);}
     }
 
     let plannerReady = false;
@@ -5684,14 +5743,6 @@
             .slice(0, p.skillCount)
             .map(code => labs.find(l => l.Code === code))
             .filter(Boolean);
-    }
-
-    function selectedCourseDays() {
-        return new Set(
-            selectedCourses()
-                .flatMap(c => c.Days || [])
-                .map(normBlock)
-        );
     }
 
     function toggleCustomLoad() {

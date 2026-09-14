@@ -1,8 +1,8 @@
 {
-  "latestVersion": "4.2.3",
+  "latestVersion": "4.2.4",
   "priority": "medium",
   "title": "Update available",
-  "message": "See when your plans are saved, retry failed saves, and export or import backups for all periods and plans A–C. export & import also allows for easy sharing of plans with advisor and friends",
+  "message": "Made Prerequisite routes actionable (when a prerequisite is conditional on taking and passing a course in an earlier period you can click on it to see the period the course is scheduled for) ",
   "downloadUrl": "https://github.com/Arthurgallaxy/msp-course-lab-selector-development/releases/latest",
   "changelogUrl": "https://github.com/Arthurgallaxy/msp-course-lab-selector-development/releases/latest",
   "minimumSupportedVersion": "4.1.8"

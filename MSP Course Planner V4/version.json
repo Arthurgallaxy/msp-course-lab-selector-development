@@ -1,8 +1,8 @@
 {
-  "latestVersion": "4.2.4",
-  "priority": "medium",
+  "latestVersion": "4.2.5",
+  "priority": "high",
   "title": "Update available",
-  "message": "Made Prerequisite routes actionable (when a prerequisite is conditional on taking and passing a course in an earlier period you can click on it to see the period the course is scheduled for) ",
+  "message": "Added a guide for newcomers and people that want to rewatch it",
   "downloadUrl": "https://github.com/Arthurgallaxy/msp-course-lab-selector-development/releases/latest",
   "changelogUrl": "https://github.com/Arthurgallaxy/msp-course-lab-selector-development/releases/latest",
   "minimumSupportedVersion": "4.1.8"

@@ -6988,6 +6988,40 @@
     // Tutorial (For First Comers)
     // ═══════════════════════════════════════════════════
 
+    //functions for mobile devices
+    function isMobileSidebarLayout() {
+        return window.matchMedia(
+            '(max-width: 900px)'
+        ).matches;
+    }
+
+
+    function setTutorialSidebarOpen(open) {
+        if (!isMobileSidebarLayout()) {
+            return;
+        }
+
+        const sidebar =
+            document.getElementById('sidebar');
+
+        const overlay =
+            document.getElementById('sbOverlay');
+
+        if (!sidebar || !overlay) {
+            return;
+        }
+
+        sidebar.classList.toggle(
+            'open',
+            open
+        );
+
+        overlay.classList.toggle(
+            'show',
+            open
+        );
+    }
+
     function hasCompletedTutorial() {
         try {
             return (
@@ -7572,6 +7606,15 @@
             return;
         }
 
+        const targetIsInSidebar =
+            !!target.closest('#sidebar');
+
+        setTutorialSidebarOpen(
+            targetIsInSidebar
+        );
+
+        await new Promise(resolve => setTimeout(resolve, 320))
+
         target.scrollIntoView({
             behavior: 'smooth',
             block: 'center',
@@ -7803,6 +7846,8 @@
             updateTutorialPosition,
             true
         );
+
+        setTutorialSidebarOpen(false);
 
         await restoreTutorialDemoSession();
     }

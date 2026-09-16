@@ -3913,6 +3913,30 @@
             }
         }
 
+        .projection-route-grid {
+            display: grid;
+            grid-template-columns:
+        repeat(4, minmax(0, 1fr));
+            gap: 10px;
+            margin: 14px 0;
+        }
+
+        .projection-stats {
+            display: grid;
+            grid-template-columns:
+        repeat(3, minmax(0, 1fr));
+            gap: 8px;
+            margin-top: 12px;
+        }
+
+        @media (max-width: 640px) {
+            .projection-route-grid,
+            .projection-stats {
+                grid-template-columns:
+            repeat(2, minmax(0, 1fr));
+            }
+        }
+
         /* Keep period selection prominent and secondary actions below navigation. */
         .sidebar > * { flex-shrink: 0; }
         .sb-brand { padding: 20px 24px 16px; }
@@ -4336,8 +4360,8 @@
     // GLOBAL STATE
     // ═══════════════════════════════════════════════════
 
-    //THIS VERSION SHOULD BE CHANGED ON EVERYUPDATE (to the same as the version.json file) OR IT WILL CAUSE PERMANENT UPDATE POPUPS
-    const APP_VERSION = '4.2.5';
+    //THIS VERSION SHOULD BE CHANGED ON EVERY UPDATE (to the same as the version.json file) OR IT WILL CAUSE PERMANENT UPDATE POPUPS
+    const APP_VERSION = '4.2.6';
     const updateurl = 'https://raw.githubusercontent.com/Arthurgallaxy/msp-course-lab-selector-development/main/MSP%20Course%20Planner%20V4/version.json';
     const FEEDBACK_ENDPOINT = 'https://formspree.io/f/maeyaoen';
 
@@ -4441,6 +4465,13 @@
         },
 
         {
+            view: 'dashboard',
+            selector: '#dash-needs',
+            title: 'Projected Requirements',
+            text: 'This section lets you see what your graduation requirements will look like at the end of the year (or specific semester/period) once you\'ve created your plans'
+        },
+
+        {
             view: ' planner',
             selector: '#plan-tabs',
             title: 'Alternative plans',
@@ -4498,8 +4529,8 @@
         {
             view: 'planner',
             selector: '.content-area',
-            title: 'That\'s it!',
-            text: 'We hope that this app helps you in your scheduling and improves your overall experience at MSP!'
+            title: 'Thats it!',
+            text: 'We hope that this app helps make course registration easier and makes your experience at MSP more enjoyable!'
         }
     ]
 
@@ -5198,6 +5229,606 @@
             console.warn('Could not restore starred courses:', err);
             return new Set();
         }
+    }
+
+    // ═══════════════════════════════════════════════════
+    // graduation progress AFTER scheduled plans
+    // ═══════════════════════════════════════════════════
+    const PROJECTION_ROUTE_KEY = 'msp-projection-route-v1';
+
+    let projectionPlanByPeriod = loadProjectionRoute();
+
+    function loadProjectionRoute() {
+        const route = {
+            P1: '',
+            P2: '',
+            P4: '',
+            P5: ''
+        };
+
+        try {
+            const saved = JSON.parse(localStorage.getItem('msp-projection-route-v1')||'{}');
+
+            for (const period of PERIOD_ORDER) {
+                if (['', 'A', 'B', 'C'].includes(saved[period])) {
+                    route[period] = saved[period];
+                }
+            }
+        } catch (_) {}
+
+        return route;
+    }
+
+    function saveProjectionRoute() {
+        if (typeof tutorialDemoMode !== 'undefined' && tutorialDemoMode) {
+            return;
+        }
+
+        try{
+            localStorage.setItem(PROJECTION_ROUTE_KEY, JSON.stringify(projectionPlanByPeriod));
+        } catch (_) {}
+    }
+
+    function setProjectionPlan(period, planKey) {
+        if (!PERIOD_ORDER.includes(period) || !['', 'A', 'B', 'C'].includes(planKey)) {
+            return;
+        }
+
+        projectionPlanByPeriod[period] = planKey;
+
+        saveProjectionRoute();
+
+        const card = document.getElementById('dash-needs');
+
+        if (card) {
+            card.outerHTML = buildGraduationProjectionCard();
+        }
+    }
+
+    function getProjectedModulesForPlan(period, planKey) {
+        const plan = ALL_PLANS[period]?.[planKey];
+
+        if (!plan) {
+            return {
+                modules:[],
+                externalCount: 0
+            };
+        }
+
+        const modules = [];
+        let externalCount = 0;
+
+        if (plan.bundle) {
+            const items = (PERIOD_DATA[period] || []).filter(item => item.Bundle === plan.bundle);
+
+            for (const item of items) {
+                const isSkill = /^PRA/.test(item.Code);
+
+                modules.push({
+                    code: item.Code,
+                    type: isSkill ? 'skill' : 'course',
+                    level: getModuleType(item.Code).level,
+                    ects: isSkill? 2.5 : 5,
+                    period,
+                    planKey
+                });
+            }
+
+            return {
+                modules,
+                externalCount
+            };
+        }
+
+        //normal courses
+        plan.courses.slice(0, plan.courseCount).forEach((code, index) => {
+            if (!code) return;
+
+            if (code ===  `__EXTERNAL_COURSE_${index}__`) {
+                externalCount++;
+                return;
+            }
+
+            modules.push({
+                code,
+                type: 'course',
+                level: getModuleType(code).level,
+                ects: 5,
+                period,
+                planKey
+            });
+        });
+
+        plan.skills.slice(0, plan.skillCount).forEach(code => {
+            if (!code) return;
+
+            modules.push({
+                code,
+                type: 'skill',
+                level: getModuleType(code).level,
+                ects: 2.5,
+                period,
+                planKey
+            });
+        });
+
+        return{
+            modules,
+            externalCount
+        };
+    }
+
+    function calculateGraduationProjection() {
+        const t = APP.transcript;
+
+        if (!t) return null;
+
+        const c = t.computed;
+        const r = c.requirements;
+        const alreadyPassed = c.passedCodes || new Set();
+        const addedCodes = new Set();
+        let addedECTS = 0;
+
+        let addedCourses = 0;
+        let addedAdvancedCourses = 0;
+        let addedIntroCourses = 0;
+
+        let addedSkills = 0;
+        let addedAdvancedSkills = 0;
+        let addedIntroSkills = 0;
+
+        let externalCount = 0;
+
+        const scheduledModules = [];
+
+        //one plan from each period
+        for (const period of PERIOD_ORDER) {
+            const planKey = projectionPlanByPeriod[period];
+
+            const result = getProjectedModulesForPlan(period, planKey);
+
+            externalCount += result.externalCount;
+
+            for (const module of result.modules) {
+                if (alreadyPassed.has(module.code) || addedCodes.has(module.code)) {
+                    continue;
+                }
+
+                addedCodes.add(module.code);
+                scheduledModules.push(module);
+                addedECTS += module.ects;
+
+                if (module.type === 'course') {
+                    addedCourses++
+
+                    if (module.level === 3000){
+                        addedAdvancedCourses++;
+                    }
+                    if (module.level === 1000){
+                        addedIntroCourses++;
+                    }
+                }
+
+                if (module.type === 'skill'){
+                    addedSkills++;
+
+                    if (module.level === 3000){
+                        addedAdvancedSkills++;
+                    }
+
+                    if (module.level === 1000){
+                        addedIntroSkills++;
+                    }
+                }
+            }
+        }
+
+        const projectedCodes = new Set([...alreadyPassed, ...addedCodes]);
+
+        const projectedECTS = c.totalECTSEarned + addedECTS;
+
+        const courses = {
+            total: c.courses.total + addedCourses,
+            advanced: c.courses.advanced + addedAdvancedCourses,
+            intro: c.courses.intro + addedIntroCourses,
+        };
+
+        const skills = {
+            total: c.skills.total + addedSkills,
+            advanced: c.skills.advanced + addedAdvancedSkills,
+            intro: c.skills.intro + addedIntroSkills,
+        };
+
+        //projects arent scheduled through this planer yet so they remain transcript only, but when they are added to this planner, this needs to change
+        const projects = {
+            total: c.projects.total,
+            advanced: c.projects.advanced,
+            intro: c.projects.intro,
+        };
+
+        const missingCore = CORE_CODES.filter(code => !projectedCodes.has(code));
+
+        const mathematicsMet = r.generalEducation.mathematics.met || [...projectedCodes].some(code => code.startsWith('MAT') || code === 'SCI3003');
+
+        const humanitiesMet = r.generalEducation.humanities.met || HUMANITIES_CODES.some(code => projectedCodes.has(code));
+
+        return {
+            addedECTS,
+            projectedECTS,
+
+            courses,
+            skills,
+            projects,
+
+            missingCore,
+            mathematicsMet,
+            humanitiesMet,
+
+            btrEligible: projectedECTS >= r.btr.ectsForEligibility.required,
+
+            scheduledModules,
+            externalCount,
+
+            remaining: {
+                ects: Math.max(0, r.totalECTS.required - projectedECTS),
+
+                courses: Math.max(0, r.courses.total.required - courses.total),
+                advancedCourses: Math.max(0, r.courses.advanced.required - courses.advanced),
+
+                skills: Math.max(0, r.skills.total.required - skills.total),
+                advancedSkills: Math.max(0, r.skills.advanced.required - skills.advanced),
+
+                projects: Math.max(0, r.projects.total.required - projects.total),
+                advancedProjects: Math.max(0, r.projects.advanced.required - projects.advanced),
+            },
+
+            introCourseExcess: Math.max(0, courses.intro - r.courses.introMax.max),
+            introSkillExcess: Math.max(0, skills.intro - r.skills.introMax.max),
+            introProjectExcess: Math.max(0, projects.intro - r.projects.introMax.max),
+        };
+    }
+
+    function getProjectionPlanECTS(
+        period,
+        planKey
+    ) {
+        const result =
+            getProjectedModulesForPlan(
+                period,
+                planKey
+            );
+
+        return result.modules.reduce(
+            (sum, module) =>
+                sum + module.ects,
+            0
+        );
+    }
+
+    function getProjectionPlanModuleCount(period, planKey) {
+        const result = getProjectedModulesForPlan(period, planKey);
+
+        return (result.modules.length + result.externalCount);
+    }
+
+    function buildGraduationProjectionCard() {
+        const p = calculateGraduationProjection();
+
+        if (!p || !APP.transcript){
+            return '';
+        }
+
+        const r = APP.transcript.computed.requirements;
+
+        const selectedRoute = PERIOD_ORDER.filter(period => projectionPlanByPeriod[period]).map(period => `${period} Plan ${projectionPlanByPeriod[period]}`);
+
+        const routeSummary = selectedRoute.length ? selectedRoute.join(' · ') : 'No scheduled plans selected';
+
+        const routeHtml = PERIOD_ORDER.map(period => {
+            const options = `
+                <option
+                    value=""
+                    ${
+                !projectionPlanByPeriod[period]
+                    ? 'selected'
+                    : ''
+                        }
+                >
+                    Do not include
+                </option>
+
+                ${['A', 'B', 'C']
+                .map(planKey => {
+                    const ects = getProjectionPlanECTS(period, planKey);
+                    const selected = projectionPlanByPeriod[period] === planKey ? 'selected' : '';
+
+                    return `
+                        <option
+                            value="${planKey}"
+                            ${selected}
+                        >
+                            Plan ${planKey}
+                            · ${ects.toFixed(1)} ECTS
+                        </option>
+                    `;
+                }).join('')}
+            `;
+
+            return `
+                <div>
+                    <label class="flbl">
+                        ${period}
+                    </label>
+
+                    <div class="sw">
+                        <select onchange="setProjectionPlan('${period}',this.value)">
+                            ${options}
+                        </select>
+                    </div>
+                </div>
+            `;
+        }).join('');
+
+        const needs = [];
+
+        if (p.remaining.ects > 0) {
+            needs.push(`<strong>${p.remaining.ects.toFixed(1)} ECTS</strong> still required to reach 180`);
+        }
+        if (p.remaining.courses > 0 || p.remaining.advancedCourses > 0) {
+            let text = `Courses: ${p.courses.total}/${r.courses.total.required}`;
+
+            if (p.remaining.courses > 0) {
+                text += ` You still need ${p.remaining.courses} more course${p.remaining.courses === 1 ? '' : 's'}.`;
+            }
+
+            if (p.remaining.advancedCourses > 0) {
+                text += ` At least ${p.remaining.advancedCourses} must still be 3000-level course${p.remaining.advancedCourses === 1 ? '' : 's'} to reach ${r.courses.advanced.required}.`;
+            }
+
+            needs.push(text);
+        }
+
+        if (p.remaining.skills > 0 || p.remaining.advancedSkills > 0) {
+            let text = `Skills / practicals: ${p.skills.total}/${r.skills.total.required}.`;
+
+            if (p.remaining.skills > 0) {
+                text += ` You still need ${p.remaining.skills} more.`;
+            }
+
+            if (p.remaining.advancedSkills > 0) {
+                text += ` At least ${p.remaining.advancedSkills} must still be 3000-level to reach ${r.skills.advanced.required}.`;
+            }
+
+            needs.push(text);
+        }
+
+        if (p.remaining.projects > 0 || p.remaining.advancedProjects > 0) {
+            let text = `Projects: ${p.projects.total}/${r.projects.total.required}.`;
+
+            if (p.remaining.projects > 0) {
+                text += ` You still need ${p.remaining.projects} more project${p.remaining.projects === 1 ? '' : 's'}.`;
+            }
+
+            if (p.remaining.advancedProjects > 0) {
+                text += ` At least ${p.remaining.advancedProjects} still need${p.remaining.advancedProjects === 1 ? 's' : ''} to be 3000-level.`;
+            }
+
+            needs.push(text);
+        }
+
+        if (p.missingCore.length) {
+            needs.push(`Core curriculum still missing` + p.missingCore.map(esc).join(', ')+ '.');
+        }
+
+        if (!p.mathematicsMet) {
+            needs.push('The Mathematics general-education requirement is still not satisfied');
+        }
+
+        if (!p.humanitiesMet) {
+            needs.push('The Humanities general-education requirement is still not satisfied');
+        }
+
+        //Maximum matters as well
+
+        if (p.introCourseExcess > 0) {
+            needs.push(`<strong>Introductory-course limit exceeded:</strong> ` + `${p.courses.intro} planned/completed, maximum ${r.courses.introMax.max}.`);
+        }
+
+        if (p.introSkillExcess > 0) {
+            needs.push(`<strong>Introductory-skill limit exceeded:</strong> ` + `${p.skills.intro} planned/completed, maximum ${r.skills.introMax.max}.`);
+        }
+
+        if (p.introProjectExcess > 0) {
+            needs.push(`<strong>Introductory-project limit exceeded:</strong> ` + `${p.projects.intro} planned/completed, maximum ${r.projects.introMax.max}.`);
+        }
+
+        if (!needs.length) {
+            needs.push(`All graduation requirements tracked by this planner would be satisfied if every selected module is passed.`);
+        }
+
+        const btrHtml = p.btrEligible? `
+            <div class="ac-tip">
+                ✓ After these scheduled modules,
+                you would have enough ECTS for
+                BTR eligibility.
+            </div>
+        `: `
+            <div class="ac-warn">
+                ⚠ After these scheduled modules,
+                you would still need
+                ${(145 - p.projectedECTS).toFixed(1)}
+                ECTS before reaching the
+                145-ECTS BTR eligibility threshold.
+            </div>
+        `;
+
+        const externalHtml = p.externalCount? `
+        <div class="ac-warn">
+            ⚠ ${p.externalCount}
+            external module${p.externalCount === 1 ? '' : 's'}
+            ${p.externalCount === 1 ? 'is' : 'are'}
+            excluded from this projection because
+            no ECTS value or academic level is stored
+            for external modules.
+        </div>
+        ` : '';
+
+        return `
+            <div class="action-card fade-in" style="margin-top:24px" id="dash-needs">
+                <h3 style="display:flex; align-items: center; gap: 8px">
+                    <span style="display: inline-flex; color:var(--navy)">
+                        ${SVG_ICONS.clipboard}
+                    </span>
+                    Projected Graduation Requirements
+                </h3>
+
+                <p style="font-size: 12.5px; color:var(--g5); line-height: 1.6">
+                    Choose one planned alternative from
+                    each period. The projection assumes
+                    that every selected module below is
+                    successfully completed.
+                </p>
+            <div class="projection-route-grid">
+                ${routeHtml}
+            </div>
+
+            <div style="font-size:11.5px; color:var(--g5); margin-top:-4px; margin-bottom:14px;">
+                <strong>Included in projection:</strong>
+                ${esc(routeSummary)}
+            </div>
+
+            <div class="projection-stats">
+                <div class="dl-box">
+                    <div class="dl-lbl">
+                        Already earned
+                    </div>
+
+                    <div class="dl-val">
+                        ${APP.transcript.computed.totalECTSEarned.toFixed(1)}
+                        ECTS
+                    </div>
+                </div>
+
+                <div class="dl-box">
+                    <div class="dl-lbl">
+                        Selected plans
+                    </div>
+
+                    <div class="dl-val">
+                        +${p.addedECTS.toFixed(1)}
+                        ECTS
+                    </div>
+                </div>
+
+                <div class="dl-box">
+                    <div class="dl-lbl">
+                        Projected total
+                    </div>
+
+                    <div class="dl-val">
+                        ${p.projectedECTS.toFixed(1)}
+                        / 180
+                    </div>
+                </div>
+
+                <div class="dl-box">
+                    <div class="dl-lbl">
+                        Courses
+                    </div>
+                    <div class="dl-val">
+                        ${p.courses.total}
+                        / ${r.courses.total.required}
+                    </div>
+                </div>
+
+                <div class="dl-box">
+                    <div class="dl-lbl">
+                        3000-level courses
+                    </div>
+                    <div class="dl-val">
+                        ${p.courses.advanced}
+                        / ${r.courses.advanced.required}
+                    </div>
+                </div>
+
+                <div class="dl-box">
+                    <div class="dl-lbl">
+                        Skills
+                    </div>
+                    <div class="dl-val">
+                        ${p.skills.total}
+                        / ${r.skills.total.required}
+                    </div>
+                </div>
+
+                <div class="dl-box">
+                    <div class="dl-lbl">
+                        3000-level skills
+                    </div>
+                    <div class="dl-val">
+                        ${p.skills.advanced}
+                        / ${r.skills.advanced.required}
+                    </div>
+                </div>
+
+                <div class="dl-box">
+                    <div class="dl-lbl">
+                        Projects
+                    </div>
+                    <div class="dl-val">
+                        ${p.projects.total}
+                        / ${r.projects.total.required}
+                    </div>
+                </div>
+            </div>
+
+            <div
+                style="
+                    margin-top:16px;
+                    font-size:13px;
+                    color:var(--g7)
+                "
+            >
+                <strong>
+                    After your scheduled plans,
+                    you would still need:
+                </strong>
+
+                <ul
+                    style="
+                        margin:
+                            8px 0 0 18px
+                    "
+                >
+                    ${needs
+            .map(
+                need =>
+                    `<li>${need}</li>`
+            )
+            .join('')}
+                </ul>
+            </div>
+
+            ${btrHtml}
+            ${externalHtml}
+
+            <div
+                style="
+                    margin-top:12px;
+                    padding:8px 12px;
+                    background:var(--g0);
+                    border-radius:var(--rs);
+                    font-size:11px;
+                    color:var(--g4)
+                "
+            >
+                Projection only. Scheduled modules are
+                treated as passed. Projects and BTR are
+                not added automatically by the period
+                course planner.
+            </div>
+        </div>
+    `;
     }
 
     const APP = {
@@ -8032,29 +8663,7 @@
   </div>`;
 
         // ─── What You Still Need ───
-        const needed = [];
-        if (!r.courses.total.met) needed.push(`${r.courses.total.required - r.courses.total.count} more course${r.courses.total.required - r.courses.total.count > 1 ? 's' : ''}`);
-        if (!r.skills.total.met) needed.push(`${r.skills.total.required - r.skills.total.count} more skill training`);
-        if (!r.projects.total.met) needed.push(`${r.projects.total.required - r.projects.total.count} more project${r.projects.total.required - r.projects.total.count > 1 ? 's' : ''}`);
-        if (!r.btr.completed) needed.push('Bachelor Thesis Research (30 ECTS)');
-        const remaining = 180 - c.totalECTSEarned;
-
-        html += `<div class="action-card fade-in" style="margin-top:24px" id="dash-needs">
-    <h3 style="display:flex;align-items:center;gap:8px"><span style="display:inline-flex;color:var(--navy)">${SVG_ICONS.clipboard}</span> What You Still Need</h3>
-    <ul>${needed.map(n => `<li>${n}</li>`).join('')}<li>Total: ${remaining.toFixed(1)} ECTS remaining</li></ul>`;
-        if (!r.btr.eligible) {
-            html += `<div class="ac-warn">\u26A0 You need ${(145 - c.totalECTSEarned).toFixed(1)} more ECTS before you're eligible to start your BTR (requirement: 145 ECTS).</div>`;
-        }
-        // Pace projection
-        const semCount = t.semesters.length;
-        const avgPerSem = semCount > 0 ? c.totalECTSEarned / semCount : 30;
-        const semsLeft = Math.ceil(remaining / avgPerSem);
-        html += `<div class="ac-tip"><span style="display:inline-flex;vertical-align:middle;margin-right:4px;color:var(--inf)">${SVG_ICONS.trending}</span> At your current pace (~${avgPerSem.toFixed(0)} ECTS/semester), you can graduate after approximately ${semsLeft} more semester${semsLeft !== 1 ? 's' : ''}${r.btr.completed ? '' : ' (including BTR)'}.</div>`;
-        html += `<div style="text-align:center;margin-top:4px"><a href="#planner" class="btn btn-or" onclick="switchView('planner')" style="text-decoration:none">\u2192 Go to Course Planner</a></div>`;
-
-        // Credit sourcing disclaimer
-        html += `<div style="margin-top:12px;padding:8px 12px;background:var(--g0);border-radius:var(--rs);font-size:11px;color:var(--g4)">&#9888; We can't verify credit sourcing rules (90 MSP / 120 catalogue) from the transcript alone. Check with your advisor.</div>`;
-        html += `</div>`;
+        html += buildGraduationProjectionCard();
 
         document.getElementById('dashContent').innerHTML = html;
 
@@ -11659,9 +12268,10 @@
 
     function buildFilterChips() {
         const el = document.getElementById('filterChips');
-        const slots = ['all', 'A', 'B', 'C', 'D', 'E', 'PRA'];
+        const slots = ['all', 'STARRED', 'A', 'B', 'C', 'D', 'E', 'PRA'];
         const labels = {
             'all': 'All',
+            'STARRED': '★ Starred',
             'A': 'Slot A',
             'B': 'Slot B',
             'C': 'Slot C',
@@ -11692,7 +12302,15 @@
 
         all.forEach(item => {
             const slot = item.Bundle ? 'FIELD' : (item.Slot || 'PRA');
-            if (catFilter !== 'all' && slot !== catFilter) return;
+
+            if (catFilter === 'STARRED'){
+                if (!starredCourses.has(item.Code)){
+                    return;
+                }
+            } else if (catFilter !== 'all' && slot !==catFilter){
+                return;
+            }
+
             if (query) {
                 const desc = descriptions[item.Code];
                 const searchable = (item.Code + ' ' + item.Title + ' ' + (item.Coordinator || '') + ' ' + (desc?.sections?.['Description of the course'] || '') + ' ' + (desc?.sections?.['Description of the skill'] || '') + ' ' + (desc?.sections?.['Description of the practical'] || '') + ' ' + (desc?.sections?.['Objectives'] || '')).toLowerCase();
@@ -11832,7 +12450,27 @@
             html += '</div></div>';
         });// end order.forEach
 
-        if (!total) html = '<div class="no-results"><span>\uD83D\uDD0D</span><p>No courses match your search. Try a different keyword.</p></div>';
+        if (!total) {
+            if (catFilter === 'STARRED') {
+                html = `
+                    <div class = "no-results">
+                        <<span>☆</span>
+                        <p>
+                            You have no starred courses available in this period.
+                        </p>
+                </div>
+                `;
+            } else {
+                html = `
+                    <div class="no-results">
+                        <span>\uD83D\uDD0D</span>
+                        <p>
+                            No courses match your search. Try a different keyword.
+                        </p>
+                    </div>
+                `;
+            }
+        }
         document.getElementById('catalogue').innerHTML = html;
         document.getElementById('resultCount').textContent = `Showing ${total} course${total !== 1 ? 's' : ''}`;
     }
@@ -11885,6 +12523,10 @@
             }
         }
         buildStarredPanel();
+
+        if (catFilter === 'STARRED') {
+            applyCatFilters();
+        }
     }
 
     function removeStar(code) {
@@ -11901,6 +12543,10 @@
             }
         }
         buildStarredPanel();
+
+        if (catFilter === 'STARRED') {
+            applyCatFilters();
+        }
     }
 
     function buildStarredPanel() {

@@ -1,8 +1,8 @@
 {
-  "latestVersion": "4.2.6",
+  "latestVersion": "4.2.7",
   "priority": "medium",
   "title": "Update available (QoL)",
-  "message": "Added a major quality of life update, which allows students to see projected graduation requirements at the end of the year based on their plans",
+  "message": "Added a tutorial step #IMPORTANT, This directory will be moving to the official one, it can be found at: https://github.com/pchrista/msp-course-lab-selector",
   "downloadUrl": "https://github.com/Arthurgallaxy/msp-course-lab-selector-development/releases/latest",
   "changelogUrl": "https://github.com/Arthurgallaxy/msp-course-lab-selector-development/releases/latest",
   "minimumSupportedVersion": "4.1.8"

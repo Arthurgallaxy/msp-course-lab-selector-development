@@ -4017,7 +4017,7 @@
                                                                                                 y2="10"/></svg></span>
                 <span class="sb-text">Course Planner<span class="sb-hint">Build your schedule</span></span>
             </a>
-            <a class="sb-link" href="#catalogue" data-view="catalogue" onclick="switchView('catalogue');closeSidebar()">
+            <a class="sb-link" id="catalogueButton" href="#catalogue" data-view="catalogue" onclick="switchView('catalogue');closeSidebar()">
                 <span class="sb-ico"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                                           stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path
                         d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path
@@ -4361,7 +4361,7 @@
     // ═══════════════════════════════════════════════════
 
     //THIS VERSION SHOULD BE CHANGED ON EVERY UPDATE (to the same as the version.json file) OR IT WILL CAUSE PERMANENT UPDATE POPUPS
-    const APP_VERSION = '4.2.6';
+    const APP_VERSION = '4.2.7';
     const updateurl = 'https://raw.githubusercontent.com/Arthurgallaxy/msp-course-lab-selector-development/main/MSP%20Course%20Planner%20V4/version.json';
     const FEEDBACK_ENDPOINT = 'https://formspree.io/f/maeyaoen';
 
@@ -4444,6 +4444,13 @@
             selector: '#periodGrid',
             title: 'Choose a period',
             text: 'Use these buttons to move between P1, P2, P4 and P5. Each period keeps its own three planning options (Plan A-C)'
+        },
+
+        {
+            view: 'catalogue',
+            selector: '#catalogueButton',
+            title: 'Course Catalogue',
+            text: 'The Course Catalogue is sorted by period so switch periods to see other courses, you can search for a specific course, or sort by slots or even favourites.'
         },
 
         {

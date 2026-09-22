@@ -1,0 +1,62 @@
+{
+  "metadata": {
+    "name": "MSP Frame Schedule",
+    "description": "General frame schedule for all regular teaching periods. Project periods are excluded.",
+    "included_periods": ["P1", "P2", "P4", "P5"],
+    "excluded_periods": ["P3", "P6"],
+    "days": {
+      "1": "Monday",
+      "2": "Tuesday",
+      "3": "Wednesday",
+      "4": "Thursday",
+      "5": "Friday"
+    },
+    "slots": {
+      "minimum": 1,
+      "maximum": 10,
+      "uses_real_time": false
+    }
+  },
+  "frame_schedule": [
+    {
+      "period": "P1",
+      "days": [
+        { "day_number": 1, "slots": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10] },
+        { "day_number": 2, "slots": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10] },
+        { "day_number": 3, "slots": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10] },
+        { "day_number": 4, "slots": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10] },
+        { "day_number": 5, "slots": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10] }
+      ]
+    },
+    {
+      "period": "P2",
+      "days": [
+        { "day_number": 1, "slots": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10] },
+        { "day_number": 2, "slots": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10] },
+        { "day_number": 3, "slots": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10] },
+        { "day_number": 4, "slots": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10] },
+        { "day_number": 5, "slots": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10] }
+      ]
+    },
+    {
+      "period": "P4",
+      "days": [
+        { "day_number": 1, "slots": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10] },
+        { "day_number": 2, "slots": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10] },
+        { "day_number": 3, "slots": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10] },
+        { "day_number": 4, "slots": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10] },
+        { "day_number": 5, "slots": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10] }
+      ]
+    },
+    {
+      "period": "P5",
+      "days": [
+        { "day_number": 1, "slots": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10] },
+        { "day_number": 2, "slots": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10] },
+        { "day_number": 3, "slots": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10] },
+        { "day_number": 4, "slots": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10] },
+        { "day_number": 5, "slots": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10] }
+      ]
+    }
+  ]
+}

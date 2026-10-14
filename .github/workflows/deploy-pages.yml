@@ -26,8 +26,8 @@ jobs:
       - name: Prepare site
         run: |
           mkdir -p _site
-          cp -a "MSP Course Planner V4/." _site/
-          cp "_site/planner-v4.html" "_site/index.html"
+          cp -a "MSP Course Planner/." _site/
+          cp "_site/planner-v1.html" "_site/index.html"
           touch "_site/.nojekyll"
 
       - name: Configure GitHub Pages

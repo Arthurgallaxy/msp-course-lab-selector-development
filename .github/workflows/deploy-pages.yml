@@ -27,7 +27,7 @@ jobs:
         run: |
           mkdir -p _site
           cp -a "MSP Course Planner/." _site/
-          cp "_site/planner-v1.0.0.html" "_site/index.html"
+          cp "_site/planner-v1.html" "_site/index.html"
           touch "_site/.nojekyll"
 
       - name: Configure GitHub Pages

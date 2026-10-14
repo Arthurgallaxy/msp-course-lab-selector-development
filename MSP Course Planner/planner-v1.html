@@ -4115,7 +4115,143 @@
   .sem-header .sem-info { grid-area: info; min-width: 0; overflow-wrap: anywhere; }
   .sem-body { min-width: 0; padding-right: 16px; padding-left: 16px; }
 }
-    /* MSP MOBILE INLINE FIX: END */
+    /* MSP MOBILE FIX: END */
+
+        /* Period selection within the Planner */
+        .planner-period-card {
+            background: #fff;
+            border: 1px solid var(--g2);
+            border-radius: var(--r);
+            box-shadow: var(--sh);
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        .planner-period-card .pd-hdr {
+            color: var(--navy);
+            font-size: 12px;
+            margin-bottom: 12px;
+        }
+
+        .planner-period-card .pd-grid {
+            display: grid;
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+            gap: 8px;
+            margin-bottom: 12px;
+        }
+
+        .planner-period-card .pd-btn {
+            background: var(--g0);
+            border: 1.5px solid var(--g2);
+            border-radius: 8px;
+            color: var(--g7);
+            padding: 12px;
+        }
+
+        .planner-period-card .pd-btn .pd-num {
+            color: var(--navy);
+        }
+
+        .planner-period-card .pd-btn .pd-season,
+        .planner-period-card .pd-btn .pd-dates {
+            color: var(--g5);
+        }
+
+        .planner-period-card .pd-btn:hover {
+            background: var(--sa-bg);
+            border-color: var(--navy);
+        }
+
+        .planner-period-card .pd-btn.active {
+            background: var(--navy);
+            border-color: var(--navy);
+            box-shadow: var(--sh);
+        }
+
+        .planner-period-card .pd-btn.active .pd-num,
+        .planner-period-card .pd-btn.active .pd-season,
+        .planner-period-card .pd-btn.active .pd-dates {
+            color: #fff;
+        }
+
+        .planner-period-card .pd-meta,
+        .planner-period-card .pd-meta strong {
+            color: var(--g5);
+        }
+
+        .planner-period-card .schedule-freshness,
+        .planner-period-card #scheduleChecked {
+            color: var(--g5);
+        }
+
+        .planner-period-card #scheduleSource {
+            color: var(--ok);
+        }
+
+        .planner-period-card #mp,
+        .planner-period-card #mv,
+        .planner-period-card #mc {
+            display: none !important;
+        }
+
+        @media (max-width: 640px) {
+            .planner-period-card {
+                padding: 14px;
+            }
+
+            .planner-period-card .pd-grid {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+            }
+        }
+
+        /* Catalogue filters */
+        .filter-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            width: 100%;
+            margin-bottom: 12px;
+        }
+
+        .filter-label {
+            font-size: 10px;
+            font-weight: 700;
+            color: var(--g5);
+            text-transform: uppercase;
+            letter-spacing: .08em;
+        }
+
+        /* Period offering badges */
+        .cat-period-badge {
+            display: inline-flex;
+            padding: 4px 9px;
+            background: var(--navy);
+            color: #fff;
+            border: 1px solid var(--g2);
+            border-radius: 6px;
+            font-size: 10px;
+            font-weight: 600;
+        }
+
+        /* New catalogue category headings */
+        .slot-badge.sl-COURSE {
+            background: var(--navy);
+        }
+
+        .slot-badge.sl-UNSCHEDULED {
+            background: var(--g5);
+        }
+
+        /* Unavailable combinations of catalogue filters */
+        .fchip:disabled,
+        .fchip:disabled:hover {
+            opacity: 0.35;
+            cursor: not-allowed;
+            background: var(--g1);
+            color: var(--g4);
+            border-color: var(--g2);
+        }
+
     </style>
 </head>
 <body>
@@ -4216,46 +4352,6 @@
                     </span>
             </button>
         </nav>
-        <div class="sb-meta">
-            <div class="pd-hdr">Active period</div>
-            <div class="pd-grid" id="periodGrid">
-                <button type="button" class="pd-btn" data-p="P1" onclick="switchPeriod('P1')"
-                        aria-label="Period 1, Fall 2026">
-                    <div class="pd-num">P1</div>
-                    <div class="pd-season">Fall 2026</div>
-                    <div class="pd-dates">31 Aug – 16 Oct</div>
-                </button>
-                <button type="button" class="pd-btn" data-p="P2" onclick="switchPeriod('P2')"
-                        aria-label="Period 2, Fall 2026">
-                    <div class="pd-num">P2</div>
-                    <div class="pd-season">Fall 2026</div>
-                    <div class="pd-dates">27 Oct – 11 Dec</div>
-                </button>
-                <button type="button" class="pd-btn" data-p="P4" onclick="switchPeriod('P4')"
-                        aria-label="Period 4, Spring 2027">
-                    <div class="pd-num">P4</div>
-                    <div class="pd-season">Spring 2027</div>
-                    <div class="pd-dates">25 Jan – 26 Mar</div>
-                </button>
-                <button type="button" class="pd-btn" data-p="P5" onclick="switchPeriod('P5')"
-                        aria-label="Period 5, Spring 2027">
-                    <div class="pd-num">P5</div>
-                    <div class="pd-season">Spring 2027</div>
-                    <div class="pd-dates">29 Mar – May</div>
-                </button>
-            </div>
-            <div class="pd-meta"><strong id="mc2">Loading&hellip;</strong><span id="mc2sub"
-                                                                                style="display:block;opacity:.75;margin-top:1px"></span>
-            </div>
-            <div class="schedule-freshness" id="scheduleFreshness" role="status" aria-live="polite" data-source="loading">
-                <strong id="scheduleSource">Checking schedule…</strong>
-                <span id="scheduleChecked">Loading the selected period’s data.</span>
-            </div>
-            <span id="mp" style="display:none"></span>
-            <span id="mv" style="display:none"></span>
-            <span id="mc" style="display:none"></span>
-
-        </div>
         <section id="backups" class="planner-backup" aria-label="Plan saving and backups">
             <div>
                 <div class="sb-backup-title">Plan backups</div>
@@ -4269,6 +4365,10 @@
                 <input type="file" id="plannerBackupFile" accept=".json,application/json" hidden onchange="importPlannerBackup(this)">
             </div>
             <p id="plannerBackupStatus" role="status" aria-live="polite"></p>
+            <div class="schedule-freshness" id="scheduleFreshness" role="status" aria-live="polite" data-source="loading">
+                <strong id="scheduleSource">Checking schedule…</strong>
+                <span id="scheduleChecked">Loading the selected period’s data.</span>
+            </div>
         </section>
         <div class="sb-footer">
             <img id="logoMain" src="assets/logo-main.png" alt="msp" class="logo-main">
@@ -4327,6 +4427,42 @@
 
             <!-- ═══ VIEW: PLANNER ═══ -->
             <div id="view-planner" class="view">
+                <div class="planner-period-card">
+                    <div class="pd-hdr">Select period</div>
+                    <div class="pd-grid" id="periodGrid">
+                        <button type="button" class="pd-btn" data-p="P1" onclick="switchPeriod('P1')"
+                                aria-label="Period 1, Fall 2026">
+                            <div class="pd-num">P1</div>
+                            <div class="pd-season">Fall 2026</div>
+                            <div class="pd-dates">31 Aug – 16 Oct</div>
+                        </button>
+                        <button type="button" class="pd-btn" data-p="P2" onclick="switchPeriod('P2')"
+                                aria-label="Period 2, Fall 2026">
+                            <div class="pd-num">P2</div>
+                            <div class="pd-season">Fall 2026</div>
+                            <div class="pd-dates">27 Oct – 11 Dec</div>
+                        </button>
+                        <button type="button" class="pd-btn" data-p="P4" onclick="switchPeriod('P4')"
+                                aria-label="Period 4, Spring 2027">
+                            <div class="pd-num">P4</div>
+                            <div class="pd-season">Spring 2027</div>
+                            <div class="pd-dates">25 Jan – 26 Mar</div>
+                        </button>
+                        <button type="button" class="pd-btn" data-p="P5" onclick="switchPeriod('P5')"
+                                aria-label="Period 5, Spring 2027">
+                            <div class="pd-num">P5</div>
+                            <div class="pd-season">Spring 2027</div>
+                            <div class="pd-dates">29 Mar – May</div>
+                        </button>
+                    </div>
+                    <div class="pd-meta"><strong id="mc2">Loading&hellip;</strong><span id="mc2sub"
+                                                                                        style="display:block;opacity:.75;margin-top:1px"></span>
+                    </div>
+                    <span id="mp" style="display:none"></span>
+                    <span id="mv" style="display:none"></span>
+                    <span id="mc" style="display:none"></span>
+
+                </div>
                 <div id="advicePanel" class="advice-panel" style="display:none"></div>
                 <div id="starredPanel" class="starred-panel" style="display:none"></div>
                 <div class="plan-tabs">
@@ -4471,10 +4607,21 @@
                                placeholder="Search by course code, title, coordinator, or keyword..."
                                oninput="applyCatFilters()">
                     </div>
-                    <div class="filter-chips" id="filterChips"></div>
+                    <div class="filter-group">
+                        <span class="filter-label">Period</span>
+                        <div class="filter-chips" id="periodChips"></div>
+                    </div>
+                    <div class="filter-group">
+                        <span class="filter-label">Subject</span>
+                        <div class="filter-chips" id="subjectChips"></div>
+                    </div>
+                    <div class="filter-group">
+                        <span class="filter-label">Slot / Type</span>
+                        <div class="filter-chips" id="filterChips"></div>
+                    </div>
                 </div>
                 <div id="resultCount" class="result-count" style="margin-bottom:16px"></div>
-                <div id="catalogue"></div>
+                <div id="catalogueResults"></div>
             </div>
 
             <!-- ═══ VIEW: INFO ═══ -->
@@ -4507,7 +4654,7 @@
     // ═══════════════════════════════════════════════════
 
     //THIS VERSION SHOULD BE CHANGED ON EVERY UPDATE (to the same as the version.json file) OR IT WILL CAUSE PERMANENT UPDATE POPUPS
-    const APP_VERSION = '1.1';
+    const APP_VERSION = '1.2.0';
     const updateurl = 'https://raw.githubusercontent.com/pchrista/msp-course-lab-selector/main/MSP%20Course%20Planner/version.json';
     const FEEDBACK_ENDPOINT = 'https://formspree.io/f/maeyaoen';
 
@@ -4530,12 +4677,12 @@
         }
     };
 
-    function getWaiverEmailLink(course, missingPrereqs) {
+    function getWaiverEmailLink(course, missingPrereqs, periodOverride = currentPeriod) {
         const coordName = course.Coordinator || "Coordinator";
         const missing = missingPrereqs || course.PrerequisiteCodes || "Specific Prerequisite(s)";
 
         // Grab the active period number (e.g., '5' from 'P5')
-        const periodMatch = currentPeriod ? currentPeriod.replace('P', '') : (cfgP || "[NUMBER]");
+        const periodMatch = periodOverride ? String(periodOverride).replace(/^P(?=\d)/, "") : '[PERIOD]';
 
         // Automatically fill student details if a transcript is uploaded
         const t = APP.transcript;
@@ -4587,16 +4734,12 @@
         },
 
         {
-            selector: '#periodGrid',
-            title: 'Choose a period',
-            text: 'Use these buttons to move between P1, P2, P4 and P5. Each period keeps its own three planning options (Plan A-C)'
-        },
-
-        {
             view: 'catalogue',
             selector: '#catalogueButton',
             title: 'Course Catalogue',
-            text: 'The Course Catalogue is sorted by period so switch periods to see other courses, you can search for a specific course, or sort by slots or even favourites.'
+            text: 'Browse the entire MSP Course Catalogue.' +
+                'Use the period pills to see when modules are offered,' +
+                'and combine these with slot filters, search, and favourites'
         },
 
         {
@@ -4625,8 +4768,15 @@
         },
 
         {
-            view: ' planner',
-            selector: '#plan-tabs',
+            view: 'planner',
+            selector: '#periodGrid',
+            title: 'Choose a period',
+            text: 'Use these buttons to move between P1, P2, P4 and P5. Each period keeps its own three planning options (Plan A-C)'
+        },
+
+        {
+            view: 'planner',
+            selector: '.plan-tabs',
             title: 'Alternative plans',
             text: 'Plans A, B, and C are alternative personal schedules for this period. They are independent of plans (A-C) used in other periods'
         },
@@ -4671,12 +4821,7 @@
             selector: '#tab-cmp',
             title: 'Compare Plans',
             text: 'Compare Plans A,B, and C side by side without changing the modules stored in any plan.',
-
-            onEnter: () => {
-                if(!cmpMode){
-                    toggleCmp()
-                }
-            }
+            compareMode: true
         },
 
         {
@@ -5393,10 +5538,10 @@
 
     function loadProjectionRoute() {
         const route = {
-            P1: 'A',
-            P2: 'A',
-            P4: 'A',
-            P5: 'A'
+            P1: '',
+            P2: '',
+            P4: '',
+            P5: ''
         };
 
         try {
@@ -8339,7 +8484,7 @@
     }
 
 
-    async function showTutorialStep(index) {
+    async function showTutorialStep(index, direction = 1) {
         if (!tutorialRunning) return;
 
         if (
@@ -8368,12 +8513,23 @@
             await step.onEnter();
         }
 
+        // Keep comparison mode synchronized with the tutorial step.
+        const shouldCompare = step.compareMode === true;
+
+        if (cmpMode !== shouldCompare) {
+            toggleCmp();
+        }
+
         // Give dynamically rendered views one frame to finish appearing.
         await new Promise(resolve =>
             requestAnimationFrame(() =>
                 requestAnimationFrame(resolve)
             )
         );
+
+        if (!tutorialRunning || tutorialStepIndex !== index) {
+            return;
+        }
 
         const target =
             document.querySelector(
@@ -8386,7 +8542,15 @@
                 step.selector
             );
 
-            showTutorialStep(index + 1);
+            const nextIndex = index + direction;
+
+            if (
+                nextIndex >= 0 &&
+                nextIndex < TUTORIAL_STEPS.length
+            ) {
+                return showTutorialStep(nextIndex, direction);
+            }
+
             return;
         }
 
@@ -8398,6 +8562,9 @@
         );
 
         await new Promise(resolve => setTimeout(resolve, 320))
+        if (!tutorialRunning || tutorialStepIndex !== index) {
+            return;
+        }
 
         target.scrollIntoView({
             behavior: 'smooth',
@@ -8407,6 +8574,10 @@
 
         //wait for the scroll
         setTimeout(() => {
+            if (!tutorialRunning || tutorialStepIndex !== index) {
+                return;
+            }
+
             renderTutorialCard(step);
             updateTutorialPosition();
         }, 300);
@@ -8580,16 +8751,12 @@
 
 
     function nextTutorialStep() {
-        showTutorialStep(
-            tutorialStepIndex + 1
-        );
+        showTutorialStep(tutorialStepIndex + 1, 1);
     }
 
 
     function previousTutorialStep() {
-        showTutorialStep(
-            tutorialStepIndex - 1
-        );
+        showTutorialStep(tutorialStepIndex - 1, -1);
     }
 
 
@@ -9031,11 +9198,13 @@
         // Build views on demand
         if (view === 'catalogue') {
             if (catBuilt) {
+                buildPeriodChips();
+                buildSubjectChips();
                 buildFilterChips();
                 applyCatFilters();
             } else {
                 const resultCount = document.getElementById('resultCount');
-                const catalogue = document.getElementById('catalogue');
+                const catalogue = document.getElementById('catalogueResults');
 
                 if (resultCount) resultCount.textContent = 'Loading course catalogue...';
                 if (catalogue) catalogue.innerHTML = '';
@@ -9048,6 +9217,15 @@
             buildStarredPanel();
         }
         window.location.hash = view;
+
+        // Reset scroll to the top whenever switching views
+        requestAnimationFrame(() => {
+            window.scrollTo({
+                top: 0,
+                left: 0,
+                behavior: 'instant'
+            });
+        });
     }
 
     function toggleSidebar() {
@@ -9149,10 +9327,6 @@
             load(csv);
 
             syncCustomLoadToggle();
-
-            // Rebuild catalogue filters too, so it reflects the new period
-            if (typeof applyCatFilters === "function") applyCatFilters();
-            if (typeof buildFilterChips === "function") buildFilterChips();
         } catch (err) {
             renderScheduleFreshness({ source: 'unavailable' });
             console.error(`Could not load period ${p}:`, err);
@@ -11555,7 +11729,7 @@
         }
         const afterPlan = t.computed.totalECTSEarned + planECTS;
         if (!r.btr.eligible) {
-            tips.push(`If you pass the selected new modules, you'll have ${afterPlan.toFixed(1)} ECTS \u2014 ${afterPlan >= 145 ? 'enough' : 'not enough'} for BTR eligibility (requires 145).`);
+            tips.push(`For a more in-depth analysis of what you will still need to achieve after this period or year, go to the dashboard's projected graduation requirements tab`);
         }
 
         if (!tips.length) {
@@ -12349,14 +12523,31 @@
     // CATALOGUE VIEW
     // ═══════════════════════════════════════════════════
     let catBuilt = false;
-    const SLOT_META = {
-        'A': {label: 'Slot A', schedule: 'Monday AM & Wednesday PM'},
-        'B': {label: 'Slot B', schedule: 'Monday PM & Thursday AM'},
-        'C': {label: 'Slot C', schedule: 'Tuesday AM & Thursday PM'},
-        'D': {label: 'Slot D', schedule: 'Tuesday PM & Friday AM'},
-        'E': {label: 'Slot E', schedule: 'Wednesday AM & Friday PM'},
-        'PRA': {label: 'Practicals & Skills', schedule: 'Various days'},
-        'FIELD': {label: 'Field Courses', schedule: 'Off-grid \u00b7 full period'}
+    let catPeriod = 'all';
+    let catalogueItems = [];
+    let catSubject = 'all';
+    let catalogueReversePrereqs = {};
+    const CATALOGUE_GROUP_META = {
+        COURSE: {
+            label: 'Courses',
+            schedule: 'Available course modules',
+            badge: 'C'
+        },
+        PRA: {
+            label: 'Practicals & Skills',
+            schedule: 'Practical and skills modules',
+            badge: 'P'
+        },
+        FIELD: {
+            label: 'Field Courses',
+            schedule: 'Field-based modules',
+            badge: 'F'
+        },
+        UNSCHEDULED: {
+            label: 'Other Catalogue Modules',
+            schedule: 'No offering found in the loaded period schedules',
+            badge: '?'
+        }
     };
 
     function parseMD(text) {
@@ -12419,6 +12610,181 @@
         });
     }
 
+    function buildFullCatalogueIndex() {
+        const byCode = new Map();
+
+        // 1. Start with every module in the master catalogue.
+        for (const raw of COURSE_CATALOGUE || []) {
+            const code = String(raw.code || '')
+                .trim()
+                .toUpperCase();
+
+            if (!code) continue;
+
+            byCode.set(code, {
+                Code: code,
+                Title: raw.title || code,
+                Coordinator: raw.coordinator || '',
+                Prerequisite:
+                    String(raw.prerequisite).toUpperCase() === 'TRUE',
+                Corequisite:
+                    String(raw.corequisite).toUpperCase() === 'TRUE',
+                PrerequisiteCodes: raw.prerequisiteCodes || '',
+                CorequisiteOf: raw.corequisiteOf || '',
+                Slot: '',
+                Days: [],
+                Bundle: '',
+                Offerings: []
+            });
+        }
+
+        // 2. Attach actual scheduled offerings from each period.
+        for (const period of PERIOD_ORDER) {
+            for (const offering of PERIOD_DATA[period] || []) {
+                const code = offering.Code.trim().toUpperCase();
+
+                if (!code) continue;
+
+                if (!byCode.has(code)) {
+                    byCode.set(code, {
+                        ...offering,
+                        Offerings: []
+                    });
+                }
+
+                const item = byCode.get(code);
+
+                item.Offerings.push({
+                    ...offering,
+                    Period: period
+                });
+            }
+        }
+
+        catalogueItems = [...byCode.values()].sort((a, b) =>
+            a.Code.localeCompare(b.Code)
+        );
+
+        // 3. Build a complete reverse prerequisite index.
+        // The existing reversePrereqIndex remains planner-specific.
+        catalogueReversePrereqs = {};
+
+        for (const item of catalogueItems) {
+            if (!item.PrerequisiteCodes) continue;
+
+            const codes = item.PrerequisiteCodes
+                .split(/[+/]/)
+                .map(code => code.trim().toUpperCase())
+                .filter(Boolean);
+
+            for (const code of codes) {
+                if (!catalogueReversePrereqs[code]) {
+                    catalogueReversePrereqs[code] = [];
+                }
+
+                if (!catalogueReversePrereqs[code]
+                    .some(existing => existing.Code === item.Code)) {
+                    catalogueReversePrereqs[code].push(item);
+                }
+            }
+        }
+    }
+
+    function buildPeriodChips() {
+        const el = document.getElementById('periodChips');
+
+        const periods = [
+            ['all', 'All periods'],
+            ['P1', 'P1'],
+            ['P2', 'P2'],
+            ['P4', 'P4'],
+            ['P5', 'P5']
+        ];
+
+        el.innerHTML = periods.map(([value, label]) => `
+        <button
+            type="button"
+            class="fchip${catPeriod === value ? ' active' : ''}"
+            onclick="setCataloguePeriod('${value}')"
+        >${label}</button>
+    `).join('');
+    }
+
+    function setCataloguePeriod(period) {
+        catPeriod = period;
+        buildPeriodChips();
+        applyCatFilters();
+    }
+
+
+    function buildSubjectChips() {
+        const el = document.getElementById('subjectChips');
+        if (!el) return;
+
+        // Extract subject prefixes automatically from course codes.
+        const subjects = [...new Set(
+            catalogueItems
+                .map(item =>
+                    (item.Code.match(/^[A-Z]+/) || [''])[0]
+                )
+                .filter(subject => subject && subject !== 'PRA')
+        )];
+
+        // Show the main MSP subjects first.
+        const priority = [
+            'BIO', 'CHE', 'INT', 'MAT', 'NEU', 'PHY'
+        ];
+
+        subjects.sort((a, b) => {
+            const rank = subject =>
+                priority.includes(subject)
+                    ? priority.indexOf(subject)
+                    : priority.length;
+
+            return rank(a) - rank(b) || a.localeCompare(b);
+        });
+
+        const options = ['all', ...subjects];
+
+        el.innerHTML = options.map(subject => {
+            const disabled = catFilter === 'PRA' && subject !== 'all';
+
+            return `
+        <button
+            type="button"
+            class="fchip${catSubject === subject ? ' active' : ''}"
+            onclick="setCatalogueSubject('${subject}')"
+            ${disabled ? 'disabled' : ''}
+            title="${disabled ? 'Select All under Slot / Type to enable subjects' : ''}"
+        >
+            ${subject === 'all' ? 'All subjects' : subject}
+        </button>
+    `;
+        }).join('');
+    }
+
+    function setCatalogueSubject(subject) {
+        // Practicals cannot be combined with an individual subject.
+        if (catFilter === 'PRA' && subject !== 'all') return;
+
+        catSubject = subject;
+
+        buildSubjectChips();
+        buildFilterChips();
+        applyCatFilters();
+    }
+
+    function setCatFilter(f) {
+        // An individual subject cannot be combined with Practicals.
+        if (f === 'PRA' && catSubject !== 'all') return;
+
+        catFilter = f;
+
+        buildFilterChips();
+        buildSubjectChips();
+        applyCatFilters();
+    }
+
     function buildFilterChips() {
         const el = document.getElementById('filterChips');
         const slots = ['all', 'STARRED', 'A', 'B', 'C', 'D', 'E', 'PRA'];
@@ -12432,64 +12798,184 @@
             'E': 'Slot E',
             'PRA': 'Practicals'
         };
-        // Only show the Field filter when the active period actually has a bundle.
-        if (bundledItems.length) {
+        //show the Field filter when the filtered period actually has a bundle.
+        if (catalogueItems.some(item =>
+            item.Offerings.some(offering => offering.Bundle)
+        )) {
             slots.push('FIELD');
             labels.FIELD = 'Field Course';
         }
-        el.innerHTML = slots.map(s => `<button class="fchip${s === catFilter ? ' active' : ''}" onclick="setCatFilter('${s}')">${labels[s]}</button>`).join('');
-    }
+        el.innerHTML = slots.map(s => {
+            const disabled = s === 'PRA' && catSubject !== 'all';
 
-    function setCatFilter(f) {
-        catFilter = f;
-        buildFilterChips();
-        applyCatFilters();
+            return `
+        <button
+            type="button"
+            class="fchip${s === catFilter ? ' active' : ''}"
+            onclick="setCatFilter('${s}')"
+            ${disabled ? 'disabled' : ''}
+            title="${disabled ? 'Clear the subject filter to view practicals' : ''}"
+        >
+            ${labels[s]}
+        </button>
+    `;
+        }).join('');
     }
 
     function applyCatFilters() {
         const query = document.getElementById('searchInput').value.toLowerCase().trim();
-        const all = [...courses, ...labs, ...bundledItems];
+        const all = catalogueItems;
         const groups = {};
         const t = APP.transcript;
         const pc = t ? t.computed.passedCodes : null;
 
-        all.forEach(item => {
-            const slot = item.Bundle ? 'FIELD' : (item.Slot || 'PRA');
+        all.forEach(base => {
+            // Period-specific offerings for this catalogue filter.
+            const offerings = base.Offerings.filter(offering =>
+                catPeriod === 'all' ||
+                offering.Period === catPeriod
+            );
 
-            if (catFilter === 'STARRED'){
-                if (!starredCourses.has(item.Code)){
-                    return;
-                }
-            } else if (catFilter !== 'all' && slot !==catFilter){
+            // When a specific period is selected, show only modules
+            // offered in that period.
+            if (catPeriod !== 'all' && offerings.length === 0) {
                 return;
             }
 
+            // Preserve starred-course filtering.
+            if (catFilter === 'STARRED' &&
+                !starredCourses.has(base.Code)) {
+                return;
+            }
+
+            // Filter independently by subject prefix.
+            const subject = (
+                base.Code.match(/^[A-Z]+/) || ['']
+            )[0];
+
+            if (catSubject !== 'all' && subject !== catSubject) {
+                return;
+            }
+
+            // Slot filters search across matching offerings.
+            // They do not depend on the planner's active period.
+            if (catFilter !== 'all' && catFilter !== 'STARRED') {
+                const matchesSlot = offerings.some(offering => {
+                    const slot = offering.Bundle
+                        ? 'FIELD'
+                        : (offering.Slot || 'PRA');
+
+                    return slot === catFilter;
+                });
+
+                if (!matchesSlot) return;
+            }
+
             if (query) {
-                const desc = descriptions[item.Code];
-                const searchable = (item.Code + ' ' + item.Title + ' ' + (item.Coordinator || '') + ' ' + (desc?.sections?.['Description of the course'] || '') + ' ' + (desc?.sections?.['Description of the skill'] || '') + ' ' + (desc?.sections?.['Description of the practical'] || '') + ' ' + (desc?.sections?.['Objectives'] || '')).toLowerCase();
+                const desc = descriptions[base.Code];
+
+                const searchable = [
+                    base.Code,
+                    base.Title,
+                    base.Coordinator,
+                    desc?.raw || ''
+                ].join(' ').toLowerCase();
+
                 if (!searchable.includes(query)) return;
             }
-            if (!groups[slot]) groups[slot] = [];
-            groups[slot].push(item);
+
+            // Pick an offering matching the selected slot where possible.
+            const representative = offerings.find(offering => {
+                const slot = offering.Bundle
+                    ? 'FIELD'
+                    : (offering.Slot || 'PRA');
+
+                return slot === catFilter;
+            }) || offerings[0];
+
+            const item = {
+                ...base,
+                Slot: representative?.Slot || '',
+                Days: representative?.Days || [],
+                Bundle: representative?.Bundle || '',
+                Offerings: offerings
+            };
+
+            // Group by module type, rather than by a single slot.
+            // A module can have different slots in different periods.
+            const group = catPeriod === 'all'
+                ? (
+                    offerings.length === 0
+                        ? 'UNSCHEDULED'
+                        : offerings.some(offering => offering.Bundle)
+                            ? 'FIELD'
+                            : item.Code.startsWith('PRA')
+                                ? 'PRA'
+                                : 'COURSE'
+                )
+                : (
+                    item.Bundle
+                        ? 'FIELD'
+                        : (item.Slot || 'PRA')
+                );
+
+            if (!groups[group]) groups[group] = [];
+            groups[group].push(item);
         });
 
-        const order = ['A', 'B', 'C', 'D', 'E', 'PRA', 'FIELD'];
+        const order = catPeriod === 'all'
+            ? ['COURSE', 'PRA', 'FIELD', 'UNSCHEDULED']
+            : ['A', 'B', 'C', 'D', 'E', 'PRA', 'FIELD'];
         let html = '';
         let total = 0;
         order.forEach(sl => {
             if (!groups[sl]) return;
             const items = groups[sl];
             total += items.length;
-            const meta = SLOT_META[sl];
-            const badgeLbl = sl === 'PRA' ? 'P' : sl === 'FIELD' ? 'F' : sl;
-            const cntNoun = sl === 'FIELD' ? 'module' : 'course';
+            const meta = catPeriod === 'all'
+                ? CATALOGUE_GROUP_META[sl]
+                : {
+                    label:
+                        sl === 'FIELD' ? 'Field Courses' :
+                            sl === 'PRA' ? 'Practicals & Skills' :
+                                `Slot ${sl}`,
+
+                    schedule: `Offered in ${catPeriod}`,
+
+                    badge:
+                        sl === 'FIELD' ? 'F' :
+                            sl === 'PRA' ? 'P' : sl
+                };
+
+            const badgeLbl = meta.badge;
+            const cntNoun = 'module';
             html += `<div class="slot-section"><div class="slot-header"><div class="slot-badge sl-${sl}">${badgeLbl}</div><div><h2>${meta.label}</h2><span class="slot-info">${meta.schedule}</span></div><span class="slot-count">${items.length} ${cntNoun}${items.length !== 1 ? 's' : ''}</span></div><div class="cards-grid">`;
 
             items.forEach(item => {
                 const desc = descriptions[item.Code];
-                const days = item.Bundle ? '<span class="daychip" style="background:#FEF3C7;color:#92400E;border-color:#FDE68A">Off-grid \u00b7 full period</span>' : item.Days.map(d => `<span class="daychip">${formatDay(d)}</span>`).join('');
+                const days = catPeriod === 'all'
+                    ? ''
+                    : item.Bundle
+                        ? '<span class="daychip">Off-grid · full period</span>'
+                        : item.Days.map(day =>
+                            `<span class="daychip">${formatDay(day)}</span>`
+                        ).join('');
+
+                const periodBadges = item.Offerings.length
+                    ? item.Offerings.map(offering => {
+                        const detail = offering.Bundle
+                            ? ' · Field'
+                            : offering.Slot
+                                ? ` · Slot ${offering.Slot}`
+                                : ' · Practical';
+
+                        return `<span class="cat-period-badge">
+            ${esc(offering.Period + detail)}
+        </span>`;
+                    }).join('')
+                    : '<span class="cat-period-badge">No listed offering</span>';
                 const tags = [];
-                if (item.Slot) tags.push(`<span class="cc-slot sl-${item.Slot}">SLOT ${item.Slot}</span>`);
+                if (item.Slot) tags.push();
                 else if (item.Bundle) tags.push(`<span class="cc-slot sl-FIELD">FIELD COURSE</span><span class="tag tag-pre" style="background:#FEF3C7;color:#92400E;border-color:#FDE68A">\u2693 By approval</span>`);
                 if (item.Prerequisite) tags.push('<span class="tag tag-pre">\u25b2 Pre-req</span>');
                 if (item.Corequisite) tags.push('<span class="tag tag-co">\u25ca Co-req</span>');
@@ -12504,8 +12990,13 @@
                 }
 
                 const isStarred = starredCourses.has(item.Code);
-                const cardTag = item.Bundle ? 'FIELD' : (item.Slot || 'PRA');
-                html += `<div class="ccard card-${cardTag}" id="card-${item.Code}" onclick="toggleCard('${item.Code}',event)"><div class="ccard-top"><div class="ccard-row1"><span class="cc-code">${item.Code}</span>${tags.join('')}</div><div class="cc-title">${esc(item.Title)}</div><div class="cc-coord">${esc(item.Coordinator)}</div></div><div class="ccard-meta">${days}</div><div class="ccard-expand">\u25B6 Click to view full course description<button class="star-btn${isStarred ? ' starred' : ''}" onclick="toggleStar('${item.Code}',event)" title="${isStarred ? 'Unstar' : 'Star'} this course">${isStarred ? '\u2605' : '\u2606'}</button></div>`;
+                const cardTag = item.Bundle
+                    ? 'FIELD'
+                    : item.Slot
+                        ? item.Slot
+                        : item.Code.startsWith('PRA')
+                            ? 'PRA'
+                            : 'UNSCHEDULED';                html += `<div class="ccard card-${cardTag}" id="card-${item.Code}" onclick="toggleCard('${item.Code}',event)"><div class="ccard-top"><div class="ccard-row1"><span class="cc-code">${item.Code}</span>${tags.join('')}</div><div class="cc-title">${esc(item.Title)}</div><div class="cc-coord">${esc(item.Coordinator)}</div></div><div class="ccard-meta">${periodBadges}${days}</div><div class="ccard-expand">\u25B6 Click to view full course description<button class="star-btn${isStarred ? ' starred' : ''}" onclick="toggleStar('${item.Code}',event)" title="${isStarred ? 'Unstar' : 'Star'} this course">${isStarred ? '\u2605' : '\u2606'}</button></div>`;
 
                 // Detail panel
                 html += '<div class="ccard-detail">';
@@ -12521,7 +13012,7 @@
                     const pre = desc.sections['Pre-requisites'] || desc.sections['Prerequisites'] || '';
                     const coreq = desc.sections['Co-requisites'] || desc.sections['Corequisites'] || '';
                     const rec = desc.sections['Recommended'] || '';
-                    const unlocks = reversePrereqIndex[item.Code] || [];
+                    const unlocks = catalogueReversePrereqs[item.Code] || [];
                     if (pre || coreq || rec || unlocks.length) {
                         html += '<div class="detail-section"><h4>Requirements</h4>';
                         if (pre) {
@@ -12537,7 +13028,7 @@
                             html += `<p style="font-size:11px;font-weight:700;color:var(--ok);margin-bottom:2px;margin-top:8px;text-transform:uppercase;letter-spacing:.06em">Recommended</p><ul>${rItems.map(r => `<li>${esc(r)}</li>`).join('')}</ul>`;
                         }
                         if (unlocks.length) {
-                            html += `<p style="font-size:11px;font-weight:700;color:var(--inf);margin-bottom:2px;margin-top:8px;text-transform:uppercase;letter-spacing:.06em">Required for</p><ul>${unlocks.map(u => `<li><strong>${u.Code}</strong> &mdash; ${esc(u.Title)}</li>`).join('')}</ul><p style="font-size:10.5px;color:var(--g5);font-style:italic;margin-top:4px">Only courses offered in Period ${cfgP || '5'} are listed. Courses in other periods may also list this as a prerequisite.</p>`;
+                            html += `<p style="font-size:11px;font-weight:700;color:var(--inf);margin-bottom:2px;margin-top:8px;text-transform:uppercase;letter-spacing:.06em">Required for</p><ul>${unlocks.map(u => `<li><strong>${u.Code}</strong> &mdash; ${esc(u.Title)}</li>`).join('')}</ul><p style="font-size:10.5px;color:var(--g5);font-style:italic;</p>`;
                         }
                         html += '</div>';
                     }
@@ -12587,7 +13078,7 @@
                             }
                         }
                         if (needsWaiver) {
-                            const waiverLink = getWaiverEmailLink(item, item.PrerequisiteCodes);
+                            const waiverLink = getWaiverEmailLink(item, item.PrerequisiteCodes, catPeriod === 'all' ? '[PERIOD]' : catPeriod);
                             html += `<div style="margin-top: 10px;"><a href="${waiverLink}" class="btn-waiver" target="_blank">Request Waiver</a></div>`;
                         }
                         html += '</div>';
@@ -12607,9 +13098,9 @@
             if (catFilter === 'STARRED') {
                 html = `
                     <div class = "no-results">
-                        <<span>☆</span>
+                        <span>☆</span>
                         <p>
-                            You have no starred courses available in this period.
+                            You have no starred courses match the selected filters.
                         </p>
                 </div>
                 `;
@@ -12618,13 +13109,13 @@
                     <div class="no-results">
                         <span>\uD83D\uDD0D</span>
                         <p>
-                            No courses match your search. Try a different keyword.
+                            No courses match your search. Try a different keyword or filters.
                         </p>
                     </div>
                 `;
             }
         }
-        document.getElementById('catalogue').innerHTML = html;
+        document.getElementById('catalogueResults').innerHTML = html;
         document.getElementById('resultCount').textContent = `Showing ${total} course${total !== 1 ? 's' : ''}`;
     }
 
@@ -13281,6 +13772,7 @@
         try {
             await loadDataFiles();
             await loadCrossPeriodData();
+            buildFullCatalogueIndex();
 
             const savedState = loadPlannerState();
 
@@ -13310,6 +13802,8 @@
             syncCustomLoadToggle();
 
             catBuilt = true;
+            buildPeriodChips();
+            buildSubjectChips();
             buildFilterChips();
             applyCatFilters();
 

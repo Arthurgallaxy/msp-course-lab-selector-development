@@ -1,9 +1,11 @@
+
 name: Deploy MSP Course Planner
 
 on:
   push:
     branches:
       - main
+      - development
   workflow_dispatch:
 
 permissions:
@@ -12,22 +14,52 @@ permissions:
   id-token: write
 
 concurrency:
-  group: "pages"
-  cancel-in-progress: true
+  group: "github-pages"
+  cancel-in-progress: false
 
 jobs:
   build:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout repository
+      # Production source
+      - name: Checkout main
         uses: actions/checkout@v6
+        with:
+          ref: main
+          path: production
 
-      - name: Prepare site
+      # Testing source
+      - name: Checkout development
+        uses: actions/checkout@v6
+        with:
+          ref: development
+          path: development
+
+      - name: Prepare both websites
+        shell: bash
         run: |
-          mkdir -p _site
-          cp -a "MSP Course Planner/." _site/
+          set -euo pipefail
+
+          mkdir -p _site/dev
+
+          # Publish main at the website root
+          cp -a "production/MSP Course Planner/." "_site/"
+
+          # Publish development under /dev/
+          cp -a "development/MSP Course Planner/." "_site/dev/"
+
+          # Make development use its own branch for
+          # remote data and version checks
+          sed -i \
+            's#raw.githubusercontent.com/pchrista/msp-course-lab-selector/main/MSP%20Course%20Planner/#raw.githubusercontent.com/pchrista/msp-course-lab-selector/development/MSP%20Course%20Planner/#g' \
+            "_site/dev/planner-v1.html"
+
+          # Provide entry points for both versions
           cp "_site/planner-v1.html" "_site/index.html"
+          cp "_site/dev/planner-v1.html" "_site/dev/index.html"
+
+          # Serve static files without Jekyll processing
           touch "_site/.nojekyll"
 
       - name: Configure GitHub Pages
@@ -39,12 +71,12 @@ jobs:
           path: "_site"
 
   deploy:
+    runs-on: ubuntu-latest
+    needs: build
+
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
-
-    runs-on: ubuntu-latest
-    needs: build
 
     steps:
       - name: Deploy to GitHub Pages

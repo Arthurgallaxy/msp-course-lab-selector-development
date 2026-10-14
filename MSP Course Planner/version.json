@@ -1,8 +1,8 @@
 {
-  "latestVersion": "1.0.0",
+  "latestVersion": "1.0.1",
   "priority": "medium",
   "title": "Update available",
-  "message": "First Stable Release of the course planner",
+  "message": "Fixed some visuals on mobile devices",
   "downloadUrl": "https://github.com/pchrista/msp-course-lab-selector/releases/latest",
   "changelogUrl": "https://github.com/pchrista/msp-course-lab-selector/releases/latest",
   "minimumSupportedVersion": "1.0.0"

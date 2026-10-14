@@ -3970,6 +3970,152 @@
         #plannerSaveStatus[data-state="saved"] { color: #a5e4c4; }
         #plannerSaveStatus[data-state="error"], #plannerSaveStatus[data-state="blocked"] { color: #ffd49b; font-weight: 600; }
         @media print { .planner-backup { display: none; } }
+
+/* Standalone MSP Course Planner mobile layout fixes.
+   Only applied on screens 640px wide or narrower.
+   Does not modify planner logic or the shared MSP portal navigation. */
+@media screen and (max-width: 640px) {
+  .app-layout {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .content-area {
+    flex: 1 1 100%;
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+  }
+
+  .main, .view, #planview, .card, .card-b {
+    min-width: 0;
+    max-width: 100%;
+    box-sizing: border-box;
+  }
+
+  /* Keep all three saved plans accessible without widening the page. */
+  .plan-tabs {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 6px;
+  }
+  .plan-tabs .ptab {
+    width: 100%;
+    min-width: 0;
+    padding: 10px 5px;
+  }
+  .plan-tabs .ptab-cmp {
+    grid-column: 1 / -1;
+  }
+
+  /* A card subtitle must not determine the card's minimum width. */
+  .card-h {
+    flex-wrap: wrap;
+  }
+  .card-h .hint {
+    flex: 1 1 100%;
+    min-width: 0;
+    max-width: 100%;
+    margin-left: 0;
+    overflow-wrap: anywhere;
+  }
+
+  /* The inline two-column grid in the study-load options needs one column on phones. */
+  #customLoadControls > div:first-child {
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
+
+  .field, .sw, .sw select {
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  /* Details such as course prerequisites may contain long strings. */
+  .cpanel, .guidance {
+    overflow-wrap: anywhere;
+  }
+}
+
+/* Transcript dashboard: graduation progress and semester history at phone widths.
+   This is a mobile-only override. It changes presentation, not calculations. */
+@media screen and (max-width: 640px) {
+  /* The desktop progress header has a fixed 180px title and 80px summary.
+     Put its content on separate rows rather than letting it overflow. */
+  .prog-section {
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  .prog-header {
+    display: grid;
+    grid-template-columns: 36px minmax(0, 1fr) auto;
+    grid-template-areas:
+      "icon title arrow"
+      "summary summary summary"
+      "bar bar pct";
+    align-items: center;
+    gap: 9px 12px;
+    padding: 14px 16px;
+    min-width: 0;
+  }
+
+  .prog-header .prog-icon { grid-area: icon; }
+  .prog-header h3 {
+    grid-area: title;
+    width: auto;
+    min-width: 0;
+    white-space: normal;
+    overflow: visible;
+    text-overflow: clip;
+    overflow-wrap: anywhere;
+    line-height: 1.35;
+  }
+  .prog-header .prog-summary {
+    grid-area: summary;
+    min-width: 0;
+    max-width: 100%;
+    text-align: left;
+    overflow-wrap: anywhere;
+    line-height: 1.4;
+  }
+  .prog-header .prog-bar-wrap {
+    grid-area: bar;
+    min-width: 0;
+    width: 100%;
+  }
+  .prog-header .prog-pct {
+    grid-area: pct;
+    width: auto;
+    text-align: right;
+  }
+  .prog-header .prog-arrow {
+    grid-area: arrow;
+    justify-self: end;
+  }
+
+  /* Expanded transcript items also need to respect the card width. */
+  .prog-body { min-width: 0; padding-right: 16px; padding-left: 16px; }
+  .prog-item { flex-wrap: wrap; }
+  .prog-item .pi-title { min-width: 0; overflow-wrap: anywhere; }
+  .prog-sub { overflow-wrap: anywhere; }
+
+  /* Semester history uses the same desktop-only, single-row assumption. */
+  .sem-header {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    grid-template-areas:
+      "arrow title"
+      ". info";
+    gap: 4px 9px;
+    padding: 13px 16px;
+    min-width: 0;
+  }
+  .sem-header .sem-arrow { grid-area: arrow; }
+  .sem-header h3 { grid-area: title; min-width: 0; overflow-wrap: anywhere; }
+  .sem-header .sem-info { grid-area: info; min-width: 0; overflow-wrap: anywhere; }
+  .sem-body { min-width: 0; padding-right: 16px; padding-left: 16px; }
+}
+    /* MSP MOBILE INLINE FIX: END */
     </style>
 </head>
 <body>
@@ -4361,7 +4507,7 @@
     // ═══════════════════════════════════════════════════
 
     //THIS VERSION SHOULD BE CHANGED ON EVERY UPDATE (to the same as the version.json file) OR IT WILL CAUSE PERMANENT UPDATE POPUPS
-    const APP_VERSION = '1.0.0';
+    const APP_VERSION = '1.0.1';
     const updateurl = 'https://raw.githubusercontent.com/pchrista/msp-course-lab-selector/main/MSP%20Course%20Planner/version.json';
     const FEEDBACK_ENDPOINT = 'https://formspree.io/f/maeyaoen';
 

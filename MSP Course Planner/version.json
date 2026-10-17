@@ -1,8 +1,8 @@
 {
-  "latestVersion": "1.1",
-  "priority": "medium",
+  "latestVersion": "1.2.0",
+  "priority": "high",
   "title": "Update available",
-  "message": "Fixed some visuals on mobile devices",
+  "message": "moved the period selector to be exclusively in the course planner and have no effect anywhere else, made the course catalogue be the full catalogue with new filters for easier sorting.",
   "downloadUrl": "https://github.com/pchrista/msp-course-lab-selector/releases/latest",
   "changelogUrl": "https://github.com/pchrista/msp-course-lab-selector/releases/latest",
   "minimumSupportedVersion": "1.0.0"

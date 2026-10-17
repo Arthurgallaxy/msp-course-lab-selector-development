@@ -52,7 +52,7 @@ jobs:
           # Make development use its own branch for
           # remote data and version checks
           sed -i \
-            's#raw.githubusercontent.com/pchrista/msp-course-lab-selector/main/MSP%20Course%20Planner/#raw.githubusercontent.com/pchrista/msp-course-lab-selector/development/MSP%20Course%20Planner/#g' \
+            's#raw.githubusercontent.com/arthurgallaxy/msp-course-lab-selector-development/main/MSP%20Course%20Planner/#raw.githubusercontent.com/arthurgallaxy/msp-course-lab-selector-development/development/MSP%20Course%20Planner/#g' \
             "_site/dev/planner-v1.html"
 
           # Provide entry points for both versions

@@ -66,3 +66,12 @@ Transcript Upload: Internet required only once to fetch pdf.js; cached afterward
 
 For Developers
 version.json priority field has 4 valid options: [low, medium, high, critical]
+
+
+Plan saving and backups
+
+The saving status above the main content shows when plans are saved in this browser. If saving fails, use Retry saving or Export backup. Saving is paused when an existing saved plan requires a newer app version or cannot be read, preserving that stored data.
+
+Export backup downloads a JSON file containing P1, P2, P4 and P5 plans A–C, including study loads, external modules and bundles. Transcripts, starred courses and check acknowledgements are not included. Import backup validates the file and asks before replacing all plans. Review imported selections against the current schedule; unavailable modules may be removed.
+
+Run persistence and backup checks with `node scripts/test-planner.cjs`.

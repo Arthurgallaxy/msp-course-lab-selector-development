@@ -26,7 +26,9 @@
     if (dialog?.open) {
       // Display notifications inside the modal, above its backdrop.
       if (node.parentElement !== dialog) {
-        dialog.querySelector('#mspLoginForm').before(node);
+        const header = dialog.querySelector('.msp-dialog-head');
+        if (header) header.after(node);
+        else dialog.prepend(node);
       }
     } else if (node.parentElement !== document.body) {
       // Restore normal notifications when the modal is closed.
@@ -55,7 +57,7 @@
 
   function nonEmpty(plan) {
     return Array.isArray(plan?.courses) && plan.courses.some(Boolean) ||
-      Array.isArray(plan?.skills) && plan.skills.some(Boolean) || !!plan?.bundle;
+        Array.isArray(plan?.skills) && plan.skills.some(Boolean) || !!plan?.bundle;
   }
   function collected(scope) {
     if (!bridge?.ready()) return [];
@@ -115,9 +117,9 @@
       <div class="msp-row"><input id="mspName" maxlength="120" value="${escapeHTML(state?.profile?.display_name || '')}" placeholder="Display name">
         <button class="btn btn-navy" data-msp-action="saveName">Save name</button></div>
       ${isAdvisor() ? '<p class="msp-note">Approved study advisor. Open <b>My students</b> in the sidebar to review submissions.</p>' :
-      eligibleAdvisorRequest() ? `<h4>Register as a study advisor</h4>${requested
-        ? `<p>Request status: <b>${escapeHTML(requested)}</b>. Approval is performed by the pilot administrator.</p>`
-        : `<div class="msp-row"><input id="mspAdvisorName" maxlength="120" placeholder="Full name"><button class="btn btn-gh" data-msp-action="requestAdvisor">Request advisor access</button></div>`}` : ''}
+        eligibleAdvisorRequest() ? `<h4>Register as a study advisor</h4>${requested
+            ? `<p>Request status: <b>${escapeHTML(requested)}</b>. Approval is performed by the pilot administrator.</p>`
+            : `<div class="msp-row"><input id="mspAdvisorName" maxlength="120" placeholder="Full name"><button class="btn btn-gh" data-msp-action="requestAdvisor">Request advisor access</button></div>`}` : ''}
       <button class="btn btn-gh" data-msp-action="logout">Sign out</button>`;
   }
   function drawSend() {
@@ -269,12 +271,12 @@
     if (busy) return;
     busy=true;
     target.disabled=true;
-    notice('');
     try {
+      notice('');
       if (action==='account') {openAccount();return;}
       if (action==='logout') {
         if (bridge?.isReviewing()) {await bridge.exitReview();reviewing=null;}
-        checked(await db.auth.signOut());user=null;state=null;closeAccount();render();return;
+        checked(await db.auth.signOut());user=null;state=null;closeAccount();render();notice('Signed out.');return;
       }
       if (!user) throw Error('Sign in first.');
       if (action==='saveName') {
@@ -351,8 +353,9 @@
     e.preventDefault();if(busy)return;
     const email=elVal('mspEmail');const password=$('mspPassword')?.value || '';
     if(!email || !password){notice('Enter both your email and password.',true);return;}
-    busy=true;notice('');
+    busy=true;
     try {
+      notice('');
       const response=checked(await db.auth.signInWithPassword({email,password}));
       if (!response?.user) throw Error('No authenticated user returned.');
       user=response.user;

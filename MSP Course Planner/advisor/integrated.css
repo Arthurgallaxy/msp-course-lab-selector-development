@@ -1,0 +1,153 @@
+/* Scoped MSP Advisor Pilot styles. Keeps the planner's native design system. */
+#mspSendArea .card-b, #view-students .card-b { display:grid; gap:12px; }
+#mspSendArea label, #mspAccountBody label, .msp-review-detail label { font-size:12px;font-weight:650;color:var(--navy,#123);display:block;margin:4px 0; }
+#mspSendArea input, #mspSendArea select, #mspSendArea textarea,
+#mspAccountBody input, .msp-review-detail textarea { width:100%;min-width:0;padding:10px 12px;border:1px solid #cbd5e1;border-radius:8px;font:inherit;font-size:13px;background:white;color:#142334; }
+.msp-row{display:flex;gap:9px;align-items:center;flex-wrap:wrap;}
+.msp-row > input, .msp-row > select {flex:1;min-width:155px;}
+.msp-send-options {display:grid;grid-template-columns:repeat(auto-fit,minmax(225px,1fr));gap:10px;}
+.msp-send-options .btn{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;padding:13px 16px;text-align:center;}
+.msp-send-options .btn small {font-size:11px;font-weight:400;opacity:.9;}
+.msp-caption{font-size:11px;color:#64748b;line-height:1.5;}
+.msp-warning{color:#9a3412;font-size:12px;}
+.msp-note{background:#eff6ff;padding:12px;border-radius:8px;font-size:12px;}
+#mspAccountDialog{width:min(510px,calc(100vw - 32px));max-height:85vh;overflow:auto;border:1px solid #d6dee7;border-radius:14px;padding:22px;color:#17243b;background:white;box-shadow:0 20px 70px #0b244b44;}
+#mspAccountDialog::backdrop{background:#071b34a9;}
+#mspAccountDialog h3{font-size:19px;margin:0 0 10px;}
+#mspAccountDialog h4{font-size:15px;margin:18px 0 8px;}
+#mspAccountDialog p,#mspAccountDialog small{line-height:1.55;}
+#mspLoginForm{display:grid;gap:8px;margin:15px 0;}
+#mspAccountDialog button {margin:3px 0;}
+.msp-dialog-head{display:flex;justify-content:space-between;gap:10px;margin-bottom:12px;align-items:center;}
+.msp-dialog-head button{background:transparent;border:0;font-size:26px;line-height:1;cursor:pointer;}
+#mspNotice:not(:empty){position:fixed;bottom:18px;right:18px;z-index:9000;max-width:440px;background:#e3f4f1;border:1px solid #8fd6c5;border-radius:9px;padding:12px 14px;box-shadow:0 8px 32px #14233433;font-size:13px;}
+#mspNotice[data-error="true"]{background:#fff1f2;border-color:#fda4af;}
+.msp-student-list{display:grid;gap:10px;}
+.msp-student{display:flex;flex-wrap:wrap;align-items:center;gap:10px;padding:14px;border:1px solid #d9e2ed;background:#fff;text-align:left;border-radius:10px;cursor:pointer;font:inherit;}
+.msp-student:hover,.msp-student:focus-visible{border-color:#0f6f94;background:#f1faff;}
+.msp-student b{min-width:130px;}.msp-student span:nth-child(2){color:#64748b;font-size:12px;flex:1;}.msp-student span:last-child{color:#065f84;font-weight:650;font-size:12px;}
+.msp-review-banner{background:#f0f9ff;border:1px solid #7dd3fc;border-radius:10px;margin:0 0 14px;padding:15px;}
+.msp-review-header{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;}
+.msp-review-header small{color:#475569;}
+.msp-review-detail{margin-top:9px;display:grid;gap:6px;}
+.msp-review-detail p{font-size:12px;}
+.msp-history{border-top:1px solid #e5e7eb;padding-top:10px;font-size:12px;}
+.msp-history summary{cursor:pointer;font-weight:600;}
+.msp-history-list{display:grid;gap:8px;margin-top:8px;}
+.msp-history-list > div{padding:9px;border:1px solid #e7ecf1;border-radius:8px;}
+/* The advisor may navigate period and plan tabs, but cannot edit an open student's plan. */
+body.msp-advisor-review #planview input,
+body.msp-advisor-review #planview select,
+body.msp-advisor-review #planview textarea,
+body.msp-advisor-review #planview button,
+body.msp-advisor-review #loadcard input,
+body.msp-advisor-review #loadcard select,
+body.msp-advisor-review #loadcard button {cursor:not-allowed;}
+/* Global hidden takes precedence over native .sb-link display rules. */
+#mspStudentsLink[hidden],#mspReviewBanner[hidden]{display:none!important;}
+@media(max-width:600px){.msp-review-header{align-items:flex-start}.msp-row>.btn{width:100%;}.msp-send-options{grid-template-columns:1fr}}
+
+/* UI refinement: centered, Maastricht-inspired academic account dialog. */
+#mspAccountDialog {
+  position:fixed;
+  inset:0;
+  margin:auto;
+  padding:0;
+  width:min(530px,calc(100vw - 28px));
+  max-height:min(88dvh,780px);
+  border:1px solid #d3dce8;
+  border-radius:16px;
+  background:#fff;
+  box-shadow:0 25px 90px rgba(0,24,52,.35);
+  overflow:auto;
+  color:#1b3049;
+  overscroll-behavior:contain;
+}
+#mspAccountDialog::backdrop {background:rgba(5,22,45,.70);backdrop-filter:blur(3px);}
+#mspAccountDialog .msp-dialog-head {
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:16px;
+  margin:0;
+  padding:20px 24px;
+  background:linear-gradient(125deg,#003b5c 0%,#002d4e 100%);
+  color:white;
+  border-bottom:4px solid #bd1742;
+}
+.msp-dialog-brand {display:grid;gap:5px;}
+.msp-dialog-brand strong {font-size:20px;letter-spacing:-.02em;line-height:1.2;}
+.msp-dialog-eyebrow {font-size:10px;letter-spacing:.11em;font-weight:750;color:#e1ebf5;text-transform:uppercase;}
+#mspAccountDialog .msp-dialog-head button {
+  display:grid;
+  place-items:center;
+  width:35px;
+  height:35px;
+  margin:0;
+  border:1px solid rgba(255,255,255,.35);
+  color:#fff;
+  background:rgba(255,255,255,.10);
+  border-radius:8px;
+  font-size:24px;
+}
+#mspAccountDialog .msp-dialog-head button:hover {background:rgba(255,255,255,.2);}
+#mspAccountBody {padding:23px 24px 25px;}
+#mspAccountDialog h3 {font-size:20px;color:#003b5c;}
+#mspAccountDialog h4 {color:#003b5c;margin-top:23px;padding-top:17px;border-top:1px solid #e4e9f0;}
+#mspAccountDialog label {color:#173750;}
+#mspAccountDialog input:focus-visible {outline:2px solid #007f9f;outline-offset:2px;}
+#mspAccountDialog .btn-navy {background:#003b5c;color:#fff;border-color:#003b5c;}
+#mspAccountDialog .btn-navy:hover {background:#005071;}
+#mspAccountDialog .msp-note {border-left:3px solid #bd1742;background:#f3f7fa;}
+#mspAccountDialog form .btn {min-height:42px;margin-top:8px;}
+
+/* Compact student sending shortcuts, placed inside the period card. */
+#mspQuickSend {
+  margin-top:13px;
+  padding:11px 12px;
+  border:1px solid #d7e1ea;
+  border-radius:9px;
+  background:#f4f8fb;
+  display:flex;
+  align-items:center;
+  flex-wrap:wrap;
+  gap:12px;
+}
+#mspQuickSend[hidden] {display:none!important;}
+.msp-quick-copy {display:grid;gap:3px;min-width:145px;flex:1;}
+.msp-quick-copy b {font-size:12px;color:#083958;line-height:1.2;}
+.msp-quick-copy span {font-size:10px;color:#66788b;line-height:1.3;}
+.msp-quick-actions {display:flex;flex-wrap:wrap;gap:7px;}
+#mspQuickSend .msp-quick-button {
+  display:inline-flex;align-items:center;justify-content:center;gap:7px;
+  padding:8px 11px;
+  border:1px solid #b9cbd8;
+  border-radius:7px;
+  background:#fff;
+  color:#0a3b58;
+  font:inherit;
+  font-size:11px;
+  font-weight:700;
+  cursor:pointer;
+  white-space:nowrap;
+}
+#mspQuickSend .msp-quick-primary {background:#003b5c;color:#fff;border-color:#003b5c;}
+#mspQuickSend .msp-quick-button:hover:not(:disabled) {border-color:#007e9b;box-shadow:0 0 0 2px rgba(0,126,155,.12);}
+#mspQuickSend .msp-quick-button:focus-visible {outline:2px solid #0088a8;outline-offset:2px;}
+#mspQuickSend .msp-quick-button:disabled {cursor:not-allowed;opacity:.46;}
+.msp-quick-count {min-width:17px;height:17px;display:inline-grid;place-items:center;border-radius:5px;background:rgba(6,53,83,.10);font-size:10px;}
+.msp-quick-primary .msp-quick-count {background:rgba(255,255,255,.22);}
+
+/* No send controls while looking at the comparison of plans. */
+#view-planner:has(#cmpview.show) #mspSendArea,
+#view-planner:has(#cmpview.show) #mspQuickSend,
+body.msp-advisor-review #mspQuickSend {display:none!important;}
+@media (max-width:600px) {
+  #mspAccountDialog {max-height:calc(100dvh - 28px);}
+  #mspAccountBody {padding:19px 17px 21px;}
+  #mspAccountDialog .msp-dialog-head {padding:17px;}
+  #mspQuickSend {align-items:stretch;}
+  .msp-quick-copy {min-width:100%;}
+  .msp-quick-actions {width:100%;}
+  #mspQuickSend .msp-quick-button {flex:1;}
+}

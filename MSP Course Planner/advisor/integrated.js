@@ -17,9 +17,22 @@
   let reviewing = null;
   let busy = false;
   let refreshSerial = 0;
-  const notice = (text, error=false) => {
+  const notice = (text, error = false) => {
     const node = $('mspNotice');
     if (!node) return;
+
+    const dialog = $('mspAccountDialog');
+
+    if (dialog?.open) {
+      // Display notifications inside the modal, above its backdrop.
+      if (node.parentElement !== dialog) {
+        dialog.querySelector('#mspLoginForm').before(node);
+      }
+    } else if (node.parentElement !== document.body) {
+      // Restore normal notifications when the modal is closed.
+      document.body.appendChild(node);
+    }
+
     node.textContent = text;
     node.dataset.error = String(error);
   };
@@ -88,12 +101,12 @@
       return;
     }
     if (!user) {
-      node.innerHTML = `<h3>Sign in</h3><p>Students and advisors use the same account. Advisor access requires separate approval.</p>
+      node.innerHTML = `<h3>Sign in</h3><p>Students and advisors use the same account portal. Advisor access requires separate approval.</p>
         <form id="mspLoginForm">
           <label for="mspEmail">Email</label><input id="mspEmail" type="email" autocomplete="username" required>
           <label for="mspPassword">Password</label><input id="mspPassword" type="password" autocomplete="current-password" required>
           <button type="submit" class="btn btn-navy">Sign in</button>
-        </form><small>Only use fictitious student data during the pilot.</small>`;
+        </form>`;
       return;
     }
     const requested = state?.request?.status;

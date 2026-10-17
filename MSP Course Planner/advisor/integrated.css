@@ -9,7 +9,7 @@
 .msp-send-options .btn{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;padding:13px 16px;text-align:center;}
 .msp-send-options .btn small {font-size:11px;font-weight:400;opacity:.9;}
 .msp-caption{font-size:11px;color:#64748b;line-height:1.5;}
-.msp-warning{color:#9a3412;font-size:12px;}
+.msp-warning{color:#92400E;font-size:12px;}
 .msp-note{background:#eff6ff;padding:12px;border-radius:8px;font-size:12px;}
 #mspAccountDialog{width:min(510px,calc(100vw - 32px));max-height:85vh;overflow:auto;border:1px solid #d6dee7;border-radius:14px;padding:22px;color:#17243b;background:white;box-shadow:0 20px 70px #0b244b44;}
 #mspAccountDialog::backdrop{background:#071b34a9;}
@@ -73,7 +73,7 @@ body.msp-advisor-review #loadcard button {cursor:not-allowed;}
   padding:20px 24px;
   background:linear-gradient(125deg,#003b5c 0%,#002d4e 100%);
   color:white;
-  border-bottom:4px solid #bd1742;
+  border-bottom:4px solid #E87722;
 }
 .msp-dialog-brand {display:grid;gap:5px;}
 .msp-dialog-brand strong {font-size:20px;letter-spacing:-.02em;line-height:1.2;}
@@ -98,7 +98,7 @@ body.msp-advisor-review #loadcard button {cursor:not-allowed;}
 #mspAccountDialog input:focus-visible {outline:2px solid #007f9f;outline-offset:2px;}
 #mspAccountDialog .btn-navy {background:#003b5c;color:#fff;border-color:#003b5c;}
 #mspAccountDialog .btn-navy:hover {background:#005071;}
-#mspAccountDialog .msp-note {border-left:3px solid #bd1742;background:#f3f7fa;}
+#mspAccountDialog .msp-note {border-left:3px solid #E87722;background:#f3f7fa;}
 #mspAccountDialog form .btn {min-height:42px;margin-top:8px;}
 
 /* Compact student sending shortcuts, placed inside the period card. */
@@ -150,4 +150,13 @@ body.msp-advisor-review #mspQuickSend {display:none!important;}
   .msp-quick-copy {min-width:100%;}
   .msp-quick-actions {width:100%;}
   #mspQuickSend .msp-quick-button {flex:1;}
+}
+
+/* Show notifications inside the account dialog when it is open. */
+#mspAccountDialog #mspNotice:not(:empty) {
+  position: static;
+  z-index: auto;
+  max-width: none;
+  margin: 16px 24px 0;
+  box-shadow: none;
 }

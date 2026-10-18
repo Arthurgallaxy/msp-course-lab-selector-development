@@ -17,26 +17,52 @@
   let reviewing = null;
   let busy = false;
   let refreshSerial = 0;
+  let reviewPlanKey = null;
+  let reviewPeriod = null;
+  let studentFilter = 'all';
+  let studentSearch = '';
+  let studentRefreshSerial = 0;
+  let advisorRefreshSerial = 0;
+  let advisorRefreshing = false;
+  let advisorLastUpdated = null;
+  let feedbackRefreshError = false;
+  let realtimeChannel = null;
+  let realtimeUserId = null;
+  let realtimeRole = null;
+  let realtimeTimer = null;
+  const reviewDrafts = new Map();
+  let noticeTimer = null;
+  let selectedSnapshot = null;
+  let snapshotRequestSerial = 0;
+  // Success notices disappear; errors remain until dismissed or replaced.
   const notice = (text, error = false) => {
+    clearTimeout(noticeTimer);
     const node = $('mspNotice');
     if (!node) return;
-
-    const dialog = $('mspAccountDialog');
-
-    if (dialog?.open) {
-      // Display notifications inside the modal, above its backdrop.
-      if (node.parentElement !== dialog) {
-        const header = dialog.querySelector('.msp-dialog-head');
+    const modal = $('mspSubmissionDialog')?.open ? $('mspSubmissionDialog') : $('mspAccountDialog')?.open ? $('mspAccountDialog') : null;
+    if (modal) {
+      if (node.parentElement !== modal) {
+        const header = modal.querySelector('.msp-dialog-head, .msp-snapshot-head');
         if (header) header.after(node);
-        else dialog.prepend(node);
+        else modal.prepend(node);
       }
-    } else if (node.parentElement !== document.body) {
-      // Restore normal notifications when the modal is closed.
-      document.body.appendChild(node);
-    }
-
-    node.textContent = text;
+    } else if (node.parentElement !== document.body) document.body.appendChild(node);
+    node.replaceChildren();
     node.dataset.error = String(error);
+    if (!text) return;
+    const message = document.createElement('span');
+    message.className = 'msp-notice-message';
+    message.textContent = text;
+    node.appendChild(message);
+    const dismiss = document.createElement('button');
+    dismiss.type = 'button';
+    dismiss.className = 'msp-notice-dismiss';
+    dismiss.setAttribute('aria-label','Dismiss notification');
+    dismiss.textContent = '×';
+    dismiss.addEventListener('click', () => { clearTimeout(noticeTimer); node.replaceChildren(); });
+    node.appendChild(dismiss);
+    node.setAttribute('role',error ? 'alert' : 'status');
+    if (!error) noticeTimer = setTimeout(() => { if (node.contains(message)) node.replaceChildren(); }, 4800);
   };
   const report = err => notice(err?.message || String(err), true);
   const elVal = id => $(id)?.value?.trim() || '';
@@ -57,7 +83,7 @@
 
   function nonEmpty(plan) {
     return Array.isArray(plan?.courses) && plan.courses.some(Boolean) ||
-        Array.isArray(plan?.skills) && plan.skills.some(Boolean) || !!plan?.bundle;
+      Array.isArray(plan?.skills) && plan.skills.some(Boolean) || !!plan?.bundle;
   }
   function collected(scope) {
     if (!bridge?.ready()) return [];
@@ -83,6 +109,191 @@
     }
     return result;
   }
+  // Review decisions belong to a submitted snapshot, not a mutable planner slot.
+  // Each period / plan is represented by its most recent submission.
+  function newestBySlot(rows) {
+    const found = new Map();
+    for (const row of rows || []) {
+      if (!PERIODS.includes(row.period) || !KEYS.includes(row.plan_key)) continue;
+      const slot = `${row.period}:${row.plan_key}`;
+      const previous = found.get(slot);
+      if (!previous || (Number(row.version_number) && Number(previous.version_number) ? Number(row.version_number) > Number(previous.version_number) : new Date(row.submitted_at) > new Date(previous.submitted_at))) found.set(slot, row);
+    }
+    return [...found.values()];
+  }
+  // Version numbers are scoped to one period and plan, oldest to newest.
+  function submissionVersions(rows) {
+    const groups = new Map();
+    for (const row of rows || []) {
+      const key = `${row.period}:${row.plan_key}`;
+      if (!groups.has(key)) groups.set(key, []);
+      groups.get(key).push(row);
+    }
+    const result = new Map();
+    for (const group of groups.values()) {
+      group.sort((a,b) => (Number(a.version_number) && Number(b.version_number) ? Number(a.version_number) - Number(b.version_number) : new Date(a.submitted_at) - new Date(b.submitted_at)) || String(a.id).localeCompare(String(b.id)));
+      group.forEach((row,i) => result.set(row.id,{version:Number(row.version_number) || i+1,latest:i===group.length-1}));
+    }
+    return result;
+  }
+  function ownSubmission(id) { return state?.own?.find(row => row.id === id); }
+  function selectedPeriodPlan() {
+    if (!selectedSnapshot || !bridge?.ready()) return null;
+    try { return bridge.snapshot().plans?.[selectedSnapshot.row.period]?.[selectedSnapshot.row.plan_key] || null; }
+    catch { return null; }
+  }
+  function snapshotEntries(plan, type) {
+    const values = Array.isArray(plan?.[type]) ? plan[type] : [];
+    return values.filter(Boolean).map((code,i) => {
+      if (/^__EXTERNAL_COURSE_\d+__$/.test(code)) {
+        const index = Number(code.match(/\d+/)[0]);
+        const course = plan.externalCourses?.[index] || {};
+        return `${course.code || 'External course'}${course.title ? ' — ' + course.title : ''}`;
+      }
+      return String(code);
+    });
+  }
+  const snapshotList = values => values.length ? `<ul>${values.map(v=>`<li>${escapeHTML(v)}</li>`).join('')}</ul>` : '<p class="msp-caption">None selected</p>';
+  function snapshotPanel(plan, title) {
+    if (!plan) return `<section class="msp-snapshot-panel"><h4>${escapeHTML(title)}</h4><p class="msp-caption">Planner data is not loaded yet.</p></section>`;
+    return `<section class="msp-snapshot-panel"><h4>${escapeHTML(title)}</h4>
+      <div class="msp-snapshot-field"><b>Courses</b>${snapshotList(snapshotEntries(plan,'courses'))}</div>
+      <div class="msp-snapshot-field"><b>Skills / practicals</b>${snapshotList(snapshotEntries(plan,'skills'))}</div>
+      <div class="msp-snapshot-field"><b>Field course / bundle</b><p>${escapeHTML(plan.bundle || 'None')}</p></div>
+      <p class="msp-caption">Study load: ${Number(plan.courseCount) || 0} courses · ${Number(plan.skillCount) || 0} skills${plan.customLoad ? ' · Custom load' : ''}</p></section>`;
+  }
+  function snapshotDifferences(sent, current) {
+    if (!current) return '<p class="msp-caption">Load your planner to compare these versions.</p>';
+    const changes = [];
+    for (const [field,title] of [['courses','Courses'],['skills','Skills / practicals']]) {
+      const before = snapshotEntries(sent,field), after = snapshotEntries(current,field);
+      // Include duplicates so repeated selections do not disappear silently.
+      const removed = [...before];
+      const added = [];
+      for (const item of after) { const index=removed.indexOf(item); if (index>=0) removed.splice(index,1); else added.push(item); }
+      for (const item of removed) changes.push(`<li class="msp-diff-removed">− ${escapeHTML(title)}: ${escapeHTML(item)}</li>`);
+      for (const item of added) changes.push(`<li class="msp-diff-added">+ ${escapeHTML(title)}: ${escapeHTML(item)}</li>`);
+    }
+    if ((sent.bundle||'') !== (current.bundle||'')) changes.push(`<li>Bundle changed: ${escapeHTML(sent.bundle||'None')} → ${escapeHTML(current.bundle||'None')}</li>`);
+    if (Number(sent.courseCount)!==Number(current.courseCount) || Number(sent.skillCount)!==Number(current.skillCount) || !!sent.customLoad!==!!current.customLoad)
+      changes.push(`<li>Study load settings changed</li>`);
+    return changes.length ? `<ul class="msp-diff-list">${changes.join('')}</ul>` : '<p class="msp-snapshot-same">No differences from your current plan.</p>';
+  }
+  function ensureSnapshotDialog() {
+    let node = $('mspSubmissionDialog');
+    if (node) return node;
+    node = document.createElement('dialog');
+    node.id = 'mspSubmissionDialog';
+    node.setAttribute('aria-labelledby','mspSnapshotTitle');
+    node.innerHTML = `<div class="msp-snapshot-head"><div><span class="msp-dialog-eyebrow">MSP Course Planner</span><h3 id="mspSnapshotTitle">Submitted plan</h3></div>
+      <button class="msp-snapshot-close" type="button" data-msp-action="closeSnapshot" aria-label="Close submitted plan preview">×</button></div>
+      <div id="mspSnapshotContent" class="msp-snapshot-content"></div>`;
+    node.addEventListener('close', () => {
+      selectedSnapshot=null;
+      ++snapshotRequestSerial;
+      const toast=$('mspNotice');
+      if (toast && toast.parentElement===node) document.body.appendChild(toast);
+    });
+    document.body.appendChild(node);
+    return node;
+  }
+  function closeSnapshot() {
+    ++snapshotRequestSerial;
+    selectedSnapshot=null;
+    const dialog=$('mspSubmissionDialog');
+    if (dialog?.open) dialog.close();
+  }
+  function drawSnapshot() {
+    const content=$('mspSnapshotContent');
+    if (!content || !selectedSnapshot) return;
+    const {row,compare} = selectedSnapshot;
+    const version = submissionVersions(state?.own).get(row.id);
+    const current = compare ? selectedPeriodPlan() : null;
+    $('mspSnapshotTitle').textContent = `${row.period} · Plan ${row.plan_key} · Version ${version?.version || '?'}`;
+    content.innerHTML = `<div class="msp-snapshot-meta">${statusHtml(row)} <span>Sent ${escapeHTML(dateText(row.submitted_at))}</span>${version?.latest ? '<span class="msp-status msp-status-reviewed">Latest version</span>' : '<span class="msp-status">Earlier version</span>'}</div>
+      <p class="msp-caption">This is a saved, read-only copy. Opening it will not change your current planner.</p>
+      <div class="msp-snapshot-actions"><button type="button" class="btn ${compare?'btn-gh':'btn-navy'}" data-msp-action="snapshotView">View submission</button>
+        <button type="button" class="btn ${compare?'btn-navy':'btn-gh'}" data-msp-action="snapshotCompare" ${!bridge?.ready()?'disabled title="Planner is not loaded yet"':''}>Compare with current plan</button></div>
+      <div class="msp-snapshot-grid ${compare ? 'msp-snapshot-two' : ''}">${snapshotPanel(row.plan_data,'Submitted version')}${compare ? snapshotPanel(current,'Current planner') : ''}</div>
+      ${compare ? `<section class="msp-snapshot-diff"><h4>Changes since submission</h4>${snapshotDifferences(row.plan_data,current)}</section>` : ''}
+      ${row.student_message ? `<div class="msp-snapshot-note"><b>Message sent with this plan</b><p>${escapeHTML(row.student_message)}</p></div>` : ''}
+      ${state.reviews?.find(r=>r.submission_id===row.id)?.comment ? `<div class="msp-snapshot-note"><b>Advisor feedback</b><p>${escapeHTML(state.reviews.find(r=>r.submission_id===row.id).comment)}</p></div>` : ''}`;
+  }
+  async function openSnapshot(id, compare=false) {
+    if (!user || !state || isAdvisor() || bridge?.isReviewing()) throw Error('Sign in as a student to view your submissions.');
+    const metadata = ownSubmission(id);
+    if (!metadata) throw Error('This submission is no longer available. Refresh the page.');
+    const uid=user.id, n=++snapshotRequestSerial;
+    const dialog=ensureSnapshotDialog();
+    selectedSnapshot=null;
+    $('mspSnapshotTitle').textContent = 'Loading submitted plan…';
+    $('mspSnapshotContent').innerHTML='<p class="msp-caption" role="status">Loading the saved plan…</p>';
+    if (!dialog.open) dialog.showModal();
+    try {
+      const row=checked(await db.from('plan_submissions')
+        .select('id,student_id,period,plan_key,plan_data,student_message,submitted_at,version_number')
+        .eq('id',id).eq('student_id',uid).single());
+      if (n!==snapshotRequestSerial || uid!==user?.id || !dialog.open) return;
+      if (!row || row.id!==metadata.id || row.period!==metadata.period || row.plan_key!==metadata.plan_key || !row.plan_data)
+        throw Error('Unable to verify the saved submission.');
+      selectedSnapshot={row,compare:compare && !!bridge?.ready()};
+      drawSnapshot();
+    } catch(err) {
+      if (n===snapshotRequestSerial && dialog.open) {
+        $('mspSnapshotTitle').textContent='Unable to open submission';
+        $('mspSnapshotContent').innerHTML=`<p class="msp-warning" role="alert">${escapeHTML(err.message || String(err))}</p><button type="button" class="btn btn-gh" data-msp-action="closeSnapshot">Close</button>`;
+      }
+    }
+  }
+
+  function reviewInfo(row) {
+    if (!row) return {key:'none', label:'Not submitted'};
+    const decision = state?.reviews?.find(r => r.submission_id === row.id)?.decision;
+    if (decision === 'reviewed') return {key:'reviewed', label:'Reviewed'};
+    if (decision === 'changes_requested') return {key:'changes', label:'Changes requested'};
+    return {key:'pending', label:'Awaiting review'};
+  }
+  const statusHtml = row => {
+    const status = reviewInfo(row);
+    return `<span class="msp-status msp-status-${status.key}">${status.label}</span>`;
+  };
+  function reviewRow(period, key) {
+    return newestBySlot(reviewing?.rows).find(r => r.period === period && r.plan_key === key);
+  }
+
+  function ensureStudentFeedback() {
+    const anchor = $('advicePanel');
+    if (!anchor) return null;
+    let node = $('mspStudentFeedback');
+    if (!node) {
+      node = document.createElement('section');
+      node.id = 'mspStudentFeedback';
+      node.className = 'card msp-feedback-card';
+      node.setAttribute('aria-label', 'Advisor feedback on submitted plans');
+      anchor.before(node);
+    }
+    return node;
+  }
+  function drawStudentFeedback() {
+    const node = ensureStudentFeedback();
+    if (!node) return;
+    const visible = !!user && !!state && !isAdvisor() && !bridge?.isReviewing() && !!state.own?.length;
+    node.hidden = !visible;
+    if (!visible) return;
+    const period = bridge?.period() || 'P1';
+    const latest = newestBySlot(state.own).filter(r => r.period === period);
+    node.innerHTML = `<div class="card-h"><div class="step">✓</div><h2>Advisor feedback</h2><span class="hint">${escapeHTML(period)} · latest submissions</span></div>
+      <div class="card-b">${latest.length ? `<div class="msp-feedback-list">${KEYS.map(key => {
+        const row = latest.find(r => r.plan_key === key);
+        if (!row) return '';
+        const review = state.reviews?.find(x => x.submission_id === row.id);
+        return `<div class="msp-feedback-item"><div class="msp-feedback-line"><b>Plan ${key}</b>${statusHtml(row)}<small>Sent ${escapeHTML(dateText(row.submitted_at))}</small></div>
+          ${review?.comment ? `<p class="msp-feedback-comment">${escapeHTML(review.comment)}</p>` : ''}</div>`;
+      }).join('')}</div>` : `<p class="msp-caption">No plans submitted for ${escapeHTML(period)} yet. You can still view other periods' submissions in the history below.</p>`}
+      <p class="msp-caption msp-feedback-foot">This shows the newest submission of each plan; older versions remain in submission history.</p>
+      ${feedbackRefreshError ? '<p class="msp-warning" role="status">Could not check for updates. Showing the last loaded feedback.</p>' : ''}</div>`;
+  }
+
   function planSummary(plan) {
     const courses = (plan?.courses || []).filter(Boolean).map(escapeHTML).join(', ') || 'None';
     const skills = (plan?.skills || []).filter(Boolean).map(escapeHTML).join(', ') || 'None';
@@ -117,9 +328,9 @@
       <div class="msp-row"><input id="mspName" maxlength="120" value="${escapeHTML(state?.profile?.display_name || '')}" placeholder="Display name">
         <button class="btn btn-navy" data-msp-action="saveName">Save name</button></div>
       ${isAdvisor() ? '<p class="msp-note">Approved study advisor. Open <b>My students</b> in the sidebar to review submissions.</p>' :
-        eligibleAdvisorRequest() ? `<h4>Register as a study advisor</h4>${requested
-            ? `<p>Request status: <b>${escapeHTML(requested)}</b>. Approval is performed by the pilot administrator.</p>`
-            : `<div class="msp-row"><input id="mspAdvisorName" maxlength="120" placeholder="Full name"><button class="btn btn-gh" data-msp-action="requestAdvisor">Request advisor access</button></div>`}` : ''}
+      eligibleAdvisorRequest() ? `<h4>Register as a study advisor</h4>${requested
+        ? `<p>Request status: <b>${escapeHTML(requested)}</b>. Approval is performed by the pilot administrator.</p>`
+        : `<div class="msp-row"><input id="mspAdvisorName" maxlength="120" placeholder="Full name"><button class="btn btn-gh" data-msp-action="requestAdvisor">Request advisor access</button></div>`}` : ''}
       <button class="btn btn-gh" data-msp-action="logout">Sign out</button>`;
   }
   function drawSend() {
@@ -163,7 +374,7 @@
           Send all periods <small>${allCount} populated plan${allCount===1?'':'s'} across P1, P2, P4 and P5</small>
         </button>
       </div><p class="msp-caption">Empty plans are excluded. Each submission is a permanent snapshot; editing your planner later will not change what you sent.</p>
-      ${renderOwnSubmissions()}`;
+      <div id="mspSubmissionHistory">${renderOwnSubmissions()}</div>`;
   }
   function drawQuickSend() {
     const node = $('mspQuickSend');
@@ -190,53 +401,169 @@
   }
 
   function renderOwnSubmissions() {
-    const submissions = state?.own || [];
-    const reviews = new Map((state?.reviews || []).map(r => [r.submission_id, r]));
+    const submissions = [...(state?.own || [])].sort((a,b) => new Date(b.submitted_at) - new Date(a.submitted_at) || String(b.id).localeCompare(String(a.id)));
+    const versions = submissionVersions(submissions);
+    const reviews = new Map((state?.reviews || []).map(r => [r.submission_id,r]));
     if (!submissions.length) return '<p class="msp-caption">You have not sent any plans yet.</p>';
-    return `<details class="msp-history"><summary>My previous submissions (${submissions.length})</summary><div class="msp-history-list">${submissions.map(s=>{
-      const review=reviews.get(s.id);
-      return `<div><b>${escapeHTML(s.period)} Plan ${escapeHTML(s.plan_key)}</b> · ${escapeHTML(dateText(s.submitted_at))}<br>
-        ${escapeHTML(review?.decision==='reviewed'?'Reviewed':review?'Changes requested':'Pending review')}${review?.comment?` · ${escapeHTML(review.comment)}`:''}</div>`;
-    }).join('')}</div></details>`;
+    return `<details class="msp-history"><summary>My submitted plans (${submissions.length})</summary>
+      <p class="msp-caption msp-history-intro">Open any saved version to see exactly what you sent, or compare it with your current plan. Only earlier versions can be deleted.</p>
+      <div class="msp-history-list">${submissions.map(s => {
+        const version=versions.get(s.id) || {version:1,latest:true};
+        const review=reviews.get(s.id);
+        return `<div class="msp-history-entry"><div class="msp-history-header"><div><b>${escapeHTML(s.period)} · Plan ${escapeHTML(s.plan_key)}</b>
+          <span class="msp-caption">Version ${version.version} · Sent ${escapeHTML(dateText(s.submitted_at))}</span></div>
+          <div class="msp-history-badges">${version.latest?'<span class="msp-status msp-status-reviewed">Latest</span>':'<span class="msp-status">Older version</span>'}${statusHtml(s)}</div></div>
+          ${review?.comment ? `<p class="msp-history-comment">${escapeHTML(review.comment)}</p>` : ''}
+          <div class="msp-history-actions"><button type="button" class="btn btn-navy" data-msp-action="viewSubmission" data-submission="${escapeHTML(s.id)}">View saved plan</button>
+            <button type="button" class="btn btn-gh" data-msp-action="compareSubmission" data-submission="${escapeHTML(s.id)}" ${!bridge?.ready()?'disabled title="Planner is not ready"':''}>Compare with current</button>
+            ${!version.latest ? `<button type="button" class="btn btn-gh msp-history-delete" data-msp-action="deleteSubmission" data-submission="${escapeHTML(s.id)}">Delete version</button>` : ''}</div></div>`;
+      }).join('')}</div></details>`;
   }
+  function drawSubmissionHistory() {
+    const node=$('mspSubmissionHistory');
+    if (!node) return;
+    const wasOpen=node.querySelector('details')?.open;
+    node.innerHTML=renderOwnSubmissions();
+    if (wasOpen && node.querySelector('details')) node.querySelector('details').open=true;
+  }
+  async function deleteOlderSubmission(id) {
+    if (!user || !state || isAdvisor()) throw Error('Sign in as a student to manage your submissions.');
+    const row=ownSubmission(id);
+    const version=submissionVersions(state.own).get(id);
+    if (!row || !version || version.latest) throw Error('You can only delete an earlier version of your own plan.');
+    if (!confirm(`Permanently delete ${row.period} Plan ${row.plan_key} · version ${version.version}?\n\nThis also deletes any advisor review and feedback attached to that version. This cannot be undone.`)) return;
+    // The database RPC independently checks the owner AND that a newer version exists.
+    checked(await db.rpc('delete_older_plan_submission',{p_submission_id:id}));
+    state.own=state.own.filter(s=>s.id!==id);
+    state.reviews=(state.reviews||[]).filter(r=>r.submission_id!==id);
+    closeSnapshot();
+    drawSubmissionHistory();
+    drawStudentFeedback();
+    notice(`Deleted version ${version.version} of ${row.period} Plan ${row.plan_key}.`);
+    void refreshStudentPeriod(bridge?.period());
+  }
+  // Advisor dashboard: filter the newest submissions without concealing older history.
   function drawStudents() {
     const node = $('mspStudentsBody');
     if (!node) return;
     if (!user) { node.innerHTML = '<p>Sign in to view advisor submissions.</p>'; return; }
     if (!isAdvisor()) { node.innerHTML = '<p>You need approved advisor access to see students.</p>'; return; }
+    const latest = new Map();
+    for (const s of state?.assigned || []) {
+      const slot = `${s.student_id}:${s.period}:${s.plan_key}`;
+      const prior = latest.get(slot);
+      if (!prior || (Number(s.version_number) && Number(prior.version_number) ? Number(s.version_number) > Number(prior.version_number) : new Date(s.submitted_at) > new Date(prior.submitted_at))) latest.set(slot, s);
+    }
+    const all = [...latest.values()];
+    const students = new Set(all.map(s => s.student_id));
+    const pending = all.filter(s => reviewInfo(s).key === 'pending').length;
+    const completed = all.filter(s => ['reviewed','changes'].includes(reviewInfo(s).key)).length;
+    const focused = document.activeElement;
+    const focusId = focused?.id === 'mspStudentSearch' || focused?.id === 'mspStudentFilter' ? focused.id : null;
+    const focusStart = focusId === 'mspStudentSearch' ? focused.selectionStart : null;
+    const focusEnd = focusId === 'mspStudentSearch' ? focused.selectionEnd : null;
+    const updatedText = advisorLastUpdated ? `Updated ${advisorLastUpdated.toLocaleTimeString(undefined,{hour:'2-digit',minute:'2-digit'})}` : 'Not refreshed yet';
+    node.innerHTML = `<div class="msp-students-intro"><div class="msp-students-heading"><p class="msp-caption">Latest plan versions are counted below. Open a student to review submissions in the planner.</p>
+      <div class="msp-students-refresh"><small id="mspStudentsUpdated">${escapeHTML(updatedText)}</small><button type="button" class="btn btn-gh msp-refresh-btn" data-msp-action="refreshStudents" ${advisorRefreshing?'disabled':''}>${advisorRefreshing?'Refreshing…':'↻ Refresh'}</button></div></div>
+      <div class="msp-student-stats"><div><b>${students.size}</b><span>Students</span></div><div><b>${pending}</b><span>Awaiting review</span></div><div><b>${completed}</b><span>Feedback sent</span></div></div>
+      <div class="msp-students-toolbar"><label for="mspStudentSearch">Find student<input id="mspStudentSearch" type="search" placeholder="Search by student name" value="${escapeHTML(studentSearch)}"></label>
+      <label for="mspStudentFilter">Review status<select id="mspStudentFilter"><option value="all">All students</option><option value="pending">Awaiting review</option><option value="changes">Changes requested</option><option value="reviewed">Reviewed</option></select></label></div></div>
+      <div id="mspStudentResults" class="msp-student-list" aria-live="polite"></div>`;
+    $('mspStudentFilter').value = studentFilter;
+    filterStudents();
+    if (focusId) {
+      const restored = $(focusId);
+      restored?.focus({preventScroll:true});
+      if (focusId === 'mspStudentSearch' && focusStart !== null) restored.setSelectionRange(focusStart,focusEnd);
+    }
+  }
+  function filterStudents() {
+    const node = $('mspStudentResults');
+    if (!node || !isAdvisor()) return;
     const grouped = new Map();
     for (const s of state?.assigned || []) {
       if (!grouped.has(s.student_id)) grouped.set(s.student_id, []);
       grouped.get(s.student_id).push(s);
     }
-    const names = new Map((state?.profiles || []).map(p=>[p.id, p.display_name]));
-    node.innerHTML = `<p>${grouped.size} student(s) have sent plans to you. Select a student to open their latest submitted plans <b>inside the Course Planner</b>.</p>
-      <div class="msp-student-list">${[...grouped].map(([uid, submissions])=>`<button type="button" class="msp-student" data-msp-action="openStudent" data-student="${escapeHTML(uid)}">
-        <b>${escapeHTML(names.get(uid)||'Student')}</b><span>${submissions.length} submitted plan${submissions.length===1?'':'s'} · latest ${escapeHTML(dateText(submissions[0]?.submitted_at))}</span><span>Open plans →</span>
-      </button>`).join('') || '<p>No student submissions yet.</p>'}</div>`;
+    const names = new Map((state?.profiles || []).map(p => [p.id, p.display_name]));
+    const query = studentSearch.trim().toLowerCase();
+    const entries = [...grouped].map(([uid, rows]) => {
+      const latest = newestBySlot(rows);
+      return {uid, latest, name:names.get(uid) || 'Student', newest:Math.max(...latest.map(x => new Date(x.submitted_at).getTime()))};
+    }).filter(item => item.name.toLowerCase().includes(query) && (studentFilter === 'all' || item.latest.some(s => reviewInfo(s).key === studentFilter)))
+      .sort((a,b) => b.newest - a.newest);
+    node.innerHTML = entries.map(item => {
+      const waiting = item.latest.filter(s => reviewInfo(s).key === 'pending').length;
+      const changes = item.latest.filter(s => reviewInfo(s).key === 'changes').length;
+      const badge = waiting ? `<span class="msp-status msp-status-pending">${waiting} awaiting review</span>` : changes
+        ? `<span class="msp-status msp-status-changes">${changes} changes requested</span>` : `<span class="msp-status msp-status-reviewed">Reviewed</span>`;
+      return `<button type="button" class="msp-student" data-msp-action="openStudent" data-student="${escapeHTML(item.uid)}">
+        <span class="msp-student-main"><b>${escapeHTML(item.name)}</b><small>${item.latest.length} latest plan${item.latest.length === 1 ? '' : 's'} · Submitted ${escapeHTML(dateText(item.newest))}</small></span>
+        ${badge}<span class="msp-student-open">Open plans →</span></button>`;
+    }).join('') || '<p class="msp-caption">No students match your current filters.</p>';
+  }
+  function syncReviewCompare() {
+    const cols = $('cmpview')?.querySelectorAll('.cmp-col');
+    if (!cols?.length) return;
+    cols.forEach((col, i) => {
+      const key = KEYS[i];
+      let button = col.querySelector('.msp-cmp-review-state');
+      if (!reviewing || !bridge?.isReviewing()) { button?.remove(); return; }
+      if (!button) {
+        button = document.createElement('button');
+        button.type = 'button';
+        button.className = 'msp-cmp-review-state';
+        button.dataset.mspAction = 'selectReviewPlan';
+        button.dataset.plan = key;
+        col.querySelector('.cmp-col-h')?.after(button);
+      }
+      const row = reviewRow(bridge.period(), key);
+      const status = reviewInfo(row);
+      const content = `<span>Advisor review</span><span class="msp-status msp-status-${status.key}">${status.label}</span>`;
+      if (button.innerHTML !== content) button.innerHTML = content;
+      const selected = reviewPlanKey === key;
+      if (button.classList.contains('selected') !== selected) button.classList.toggle('selected', selected);
+      if (button.getAttribute('aria-pressed') !== String(selected)) button.setAttribute('aria-pressed', String(selected));
+      button.disabled = !row;
+      button.title = row ? `Give feedback on Plan ${key}` : `No submission for Plan ${key}`;
+    });
   }
   function updateReviewBanner() {
     const banner = $('mspReviewBanner');
     if (!banner) return;
-    if (!reviewing || !bridge?.isReviewing()) { banner.hidden = true; return; }
+    if (!reviewing || !bridge?.isReviewing()) { banner.hidden = true; syncReviewCompare(); return; }
     banner.hidden = false;
-    const {rows,name}=reviewing;
-    const period=bridge.period();
-    const key=bridge.planKey();
-    const row=rows.find(r=>r.period===period && r.plan_key===key);
-    const review=state?.reviews?.find(x=>x.submission_id===row?.id);
-    banner.innerHTML = `<div class="msp-review-header"><div><b>Viewing ${escapeHTML(name)}'s submitted plans</b><br><small>Read-only advisor preview · ${escapeHTML(period)} Plan ${escapeHTML(key)}</small></div>
+    const period = bridge.period();
+    if (reviewPeriod !== period) {
+      reviewPeriod = period;
+      reviewPlanKey = null;
+    }
+    const latest = KEYS.map(key => reviewRow(period,key)).filter(Boolean);
+    if (!reviewPlanKey) reviewPlanKey = latest.some(s => s.plan_key === bridge.planKey()) ? bridge.planKey() : latest[0]?.plan_key || 'A';
+    const row = reviewRow(period, reviewPlanKey);
+    const review = state?.reviews?.find(x => x.submission_id === row?.id);
+    banner.innerHTML = `<div class="msp-review-header"><div><b>Viewing ${escapeHTML(reviewing.name)}'s plans</b><br><small>Read-only review · ${escapeHTML(period)} · Select a submitted plan to give feedback</small></div>
       <button class="btn btn-navy" data-msp-action="exitReview">Exit student review</button></div>
-      ${row ? `<div class="msp-review-detail"><small>Submitted ${escapeHTML(dateText(row.submitted_at))} · ${escapeHTML(review?.decision||'pending')}</small>
-        ${row.student_message ? `<p><b>Student's message:</b> ${escapeHTML(row.student_message)}</p>` : ''}
-        <label for="mspReviewComment">Feedback on this plan</label><textarea id="mspReviewComment" maxlength="3000" rows="2">${escapeHTML(review?.comment||'')}</textarea>
+      ${reviewing.hasNewer ? '<p class="msp-warning msp-new-version-warning" role="status">Newer submissions are available. Exit review and reopen this student to load their latest plans.</p>' : ''}
+      <div class="msp-review-tabs" role="group" aria-label="Choose a plan for advisor feedback">${KEYS.map(key => {
+        const slot = reviewRow(period,key);
+        return `<button type="button" class="msp-review-tab ${key === reviewPlanKey ? 'active' : ''}" data-msp-action="selectReviewPlan" data-plan="${key}" aria-pressed="${String(key === reviewPlanKey)}" ${!slot?'disabled':''}>
+          <b>Plan ${key}</b>${statusHtml(slot)}</button>`;
+      }).join('')}</div>
+      ${row ? `<div class="msp-review-detail"><div class="msp-review-meta"><small>Plan ${escapeHTML(reviewPlanKey)} · Submitted ${escapeHTML(dateText(row.submitted_at))}</small>${statusHtml(row)}</div>
+        ${row.student_message ? `<p><b>Student message:</b> ${escapeHTML(row.student_message)}</p>` : ''}
+        <label for="mspReviewComment">Feedback on Plan ${escapeHTML(reviewPlanKey)}</label><textarea id="mspReviewComment" maxlength="3000" rows="2" placeholder="Optional feedback for this submitted plan">${escapeHTML(reviewDrafts.get(row.id) ?? review?.comment ?? '')}</textarea>
         <div class="msp-row"><button class="btn btn-gh" data-msp-action="review" data-decision="reviewed" data-submission="${escapeHTML(row.id)}">Mark reviewed</button>
-          <button class="btn btn-gh" data-msp-action="review" data-decision="changes_requested" data-submission="${escapeHTML(row.id)}">Request changes</button></div>
-      </div>` : '<p>There is no submitted plan for the selected period / plan tab.</p>'}`;
+          <button class="btn btn-navy" data-msp-action="review" data-decision="changes_requested" data-submission="${escapeHTML(row.id)}">Request changes</button></div>
+      </div>` : '<p class="msp-caption">No plan was submitted for this period. Choose another period to review.</p>'}`;
+    syncReviewCompare();
   }
 
   async function loadState() {
     const n=++refreshSerial;
+    ++studentRefreshSerial;
+    ++advisorRefreshSerial;
+    advisorRefreshing = false;
     if (!db || !user) { state=null; render(); return; }
     const uid=user.id;
     try {
@@ -245,7 +572,7 @@
         db.from('advisors').select('user_id,display_name,active').eq('active',true).order('display_name'),
         db.from('advisor_assignments').select('student_id,advisor_id').eq('student_id',uid).maybeSingle(),
         db.from('advisor_requests').select('user_id,status,display_name').eq('user_id',uid).maybeSingle(),
-        db.from('plan_submissions').select('id,student_id,advisor_id,period,plan_key,plan_data,student_message,submitted_at').eq('student_id',uid).order('submitted_at',{ascending:false}),
+        db.from('plan_submissions').select('id,period,plan_key,submitted_at,version_number').eq('student_id',uid).order('submitted_at',{ascending:false}),
         db.from('advisors').select('user_id,display_name,active').eq('user_id',uid).maybeSingle()
       ]);
       list.forEach(checked);
@@ -257,29 +584,177 @@
       const profiles=studentIds.length ? checked(await db.from('profiles').select('id,display_name').in('id',studentIds)) : [];
       if (n!==refreshSerial || uid!==user?.id) return;
       state={profile,advisors:advisors||[],assignment,request,own:own||[],advisor,assigned,reviews,profiles};
+      if (advisor?.active) advisorLastUpdated = new Date();
       render();
+      if (selectedSnapshot) {
+        if (ownSubmission(selectedSnapshot.row.id)) drawSnapshot();
+        else closeSnapshot();
+      }
+      ensureRealtime();
     } catch(e) { if (n===refreshSerial) { report(e); render(); } }
   }
+  // Cache-first period changes: repaint synchronously; fetch only this period's
+  // metadata and reviews in the background (no plan_data downloads).
+  async function refreshStudentPeriod(period) {
+    if (!db || !user || !state || isAdvisor() || (period !== null && !PERIODS.includes(period))) return;
+    const uid = user.id;
+    const n = ++studentRefreshSerial;
+    try {
+      let query = db.from('plan_submissions').select('id,period,plan_key,submitted_at,version_number').eq('student_id',uid);
+      if (period !== null) query = query.eq('period',period);
+      const rows = checked(await query.order('submitted_at',{ascending:false}));
+      const ids = rows.map(row => row.id);
+      const reviews = ids.length ? checked(await db.from('plan_reviews')
+        .select('submission_id,advisor_id,decision,comment,reviewed_at').in('submission_id',ids)) : [];
+      if (n !== studentRefreshSerial || uid !== user?.id || !state || isAdvisor()) return;
+      const oldIds = new Set((state.own || []).filter(row => period === null || row.period === period).map(row => row.id));
+      state.own = [...(state.own || []).filter(row => period !== null && row.period !== period),...rows];
+      state.reviews = [...(state.reviews || []).filter(row => !oldIds.has(row.submission_id)),...reviews];
+      feedbackRefreshError = false;
+      drawStudentFeedback();
+      drawSubmissionHistory();
+      if (selectedSnapshot) {
+        if (!ownSubmission(selectedSnapshot.row.id)) closeSnapshot();
+        else drawSnapshot();
+      }
+    } catch (err) {
+      if (n === studentRefreshSerial && uid === user?.id) {
+        feedbackRefreshError = true;
+        drawStudentFeedback();
+        console.warn('Could not refresh advisor feedback:', err);
+      }
+    }
+  }
+
+  // Dashboard refresh is independent of the planner and avoids reloading
+  // profile/account settings and rebuilding a student's local plan.
+  async function refreshAdvisorData() {
+    if (!db || !user || !state || !isAdvisor()) return;
+    const uid = user.id;
+    const n = ++advisorRefreshSerial;
+    advisorRefreshing = true;
+    const btn = document.querySelector('#mspStudentsBody [data-msp-action="refreshStudents"]');
+    if (btn) { btn.disabled = true; btn.textContent = 'Refreshing…'; }
+    try {
+      const assigned = checked(await db.from('plan_submissions')
+        .select('id,student_id,advisor_id,period,plan_key,plan_data,student_message,submitted_at')
+        .eq('advisor_id',uid).order('submitted_at',{ascending:false}));
+      const ids = [...new Set([...(state.own || []),...assigned].map(row => row.id))];
+      const studentIds = [...new Set(assigned.map(row => row.student_id))];
+      const [reviewsResult,profilesResult] = await Promise.all([
+        ids.length ? db.from('plan_reviews').select('submission_id,advisor_id,decision,comment,reviewed_at').in('submission_id',ids) : Promise.resolve({data:[],error:null}),
+        studentIds.length ? db.from('profiles').select('id,display_name').in('id',studentIds) : Promise.resolve({data:[],error:null})
+      ]);
+      const reviews = checked(reviewsResult);
+      const profiles = checked(profilesResult);
+      if (n !== advisorRefreshSerial || uid !== user?.id || !state || !isAdvisor()) return;
+      state.assigned = assigned;
+      state.reviews = reviews;
+      state.profiles = profiles;
+      advisorLastUpdated = new Date();
+      // The planner is a read-only snapshot. Do not silently swap its plans
+      // while the advisor is writing feedback about an earlier version.
+      if (reviewing) {
+        const remote = newestBySlot(assigned.filter(row => row.student_id === reviewing.student));
+        const opened = newestBySlot(reviewing.rows);
+        reviewing.hasNewer = remote.some(row => !opened.some(old =>
+          old.period === row.period && old.plan_key === row.plan_key && old.id === row.id));
+      }
+      drawStudents();
+      if (reviewing) updateReviewBanner();
+    } catch (err) {
+      if (n === advisorRefreshSerial && uid === user?.id) {
+        console.warn('Could not refresh student submissions:', err);
+        notice(`Could not refresh students: ${err.message || err}`, true);
+      }
+    } finally {
+      if (n === advisorRefreshSerial) {
+        advisorRefreshing = false;
+        const button = document.querySelector('#mspStudentsBody [data-msp-action="refreshStudents"]');
+        if (button) { button.disabled = false; button.textContent = '↻ Refresh'; }
+      }
+    }
+  }
+
+  // PostgreSQL change events can trigger an incremental refresh when the two
+  // tables are enabled in Supabase's realtime publication. Manual refresh and
+  // period-change fetching continue working if realtime is unavailable.
+  function stopRealtime() {
+    clearTimeout(realtimeTimer); realtimeTimer = null;
+    if (realtimeChannel && db?.removeChannel) void db.removeChannel(realtimeChannel);
+    realtimeChannel = null; realtimeUserId = null; realtimeRole = null;
+  }
+  function scheduleRealtimeRefresh() {
+    clearTimeout(realtimeTimer);
+    realtimeTimer = setTimeout(() => {
+      realtimeTimer = null;
+      if (!user || !state) return;
+      if (isAdvisor()) void refreshAdvisorData();
+      else void refreshStudentPeriod(null);
+    }, 150);
+  }
+  function ensureRealtime() {
+    if (!db?.channel || !user || !state) return;
+    if (realtimeChannel && realtimeUserId === user.id && realtimeRole === isAdvisor()) return;
+    stopRealtime();
+    realtimeUserId = user.id;
+    realtimeRole = isAdvisor();
+    const submissionFilter = `${isAdvisor() ? 'advisor_id' : 'student_id'}=eq.${user.id}`;
+    try {
+      realtimeChannel = db.channel(`msp-advisor-data-${user.id}`)
+        .on('postgres_changes',{event:'*',schema:'public',table:'plan_submissions',filter:submissionFilter},scheduleRealtimeRefresh)
+        .on('postgres_changes',{event:'*',schema:'public',table:'plan_reviews'},scheduleRealtimeRefresh)
+        .subscribe();
+    } catch(err) {
+      console.warn('Realtime updates unavailable; using period and manual refresh:',err);
+      stopRealtime();
+    }
+  }
+  function periodChanged() {
+    feedbackRefreshError = false;
+    drawStudentFeedback();
+    if (reviewing) updateReviewBanner();
+    if (user && state && !isAdvisor()) void refreshStudentPeriod(bridge?.period());
+  }
+
   function render() {
     const studentsLink=$('mspStudentsLink');
     if (studentsLink) studentsLink.hidden = !isAdvisor();
     const button=$('mspAccountLink');
     if (button) button.querySelector('.sb-hint').textContent = user ? user.email : 'Sign in';
-    drawAccount();drawSend();drawQuickSend();drawStudents();updateReviewBanner();
+    drawAccount();drawSend();drawQuickSend();drawStudentFeedback();drawStudents();updateReviewBanner();
   }
   async function act(action, target) {
+    if (busy && action === 'closeSnapshot') { closeSnapshot(); return; }
     if (busy) return;
     busy=true;
     target.disabled=true;
+    const oldLabel = target.innerHTML;
+    const progress = {deleteSubmission:'Deleting…',submit:'Submitting…',requestAdvisor:'Sending request…',saveAdvisor:'Saving…',saveName:'Saving…',logout:'Signing out…',review:'Saving review…'}[action];
+    if (progress) target.textContent=progress;
     try {
       notice('');
       if (action==='account') {openAccount();return;}
       if (action==='logout') {
+        closeSnapshot(); stopRealtime(); ++studentRefreshSerial; ++advisorRefreshSerial; reviewDrafts.clear();
         if (bridge?.isReviewing()) {await bridge.exitReview();reviewing=null;}
         checked(await db.auth.signOut());user=null;state=null;closeAccount();render();notice('Signed out.');return;
       }
       if (!user) throw Error('Sign in first.');
-      if (action==='saveName') {
+      if (action==='viewSubmission' || action==='compareSubmission') {
+        await openSnapshot(target.dataset.submission,action==='compareSubmission');
+      } else if (action==='snapshotView' || action==='snapshotCompare') {
+        if (!selectedSnapshot) throw Error('Open a submitted plan first.');
+        selectedSnapshot.compare = action==='snapshotCompare';
+        drawSnapshot();
+      } else if (action==='closeSnapshot') {
+        closeSnapshot();
+      } else if (action==='deleteSubmission') {
+        await deleteOlderSubmission(target.dataset.submission);
+      } else if (action==='refreshStudents') {
+        if (!isAdvisor()) throw Error('Only advisors can refresh the student list.');
+        await refreshAdvisorData();
+      } else if (action==='saveName') {
         const name=elVal('mspName');if (!name || name.length>120) throw Error('Enter a name (1–120 characters).');
         checked(await db.from('profiles').upsert({id:user.id,display_name:name,updated_at:new Date().toISOString()},{onConflict:'id'}));
         await loadState();notice('Name saved.');
@@ -310,6 +785,11 @@
         const rows=plans.map(x=>({student_id:user.id,advisor_id:advisor.advisor_id,period:x.period,plan_key:x.key,plan_data:x.plan,student_message:note}));
         checked(await db.from('plan_submissions').insert(rows));
         await loadState();notice(`Sent ${plans.length} populated plan(s) to your advisor.`);
+      } else if(action==='selectReviewPlan') {
+        if (!reviewing || !bridge?.isReviewing()) throw Error('Open a student first.');
+        const key=target.dataset.plan;
+        if (!KEYS.includes(key) || !reviewRow(bridge.period(),key)) throw Error('No submitted plan to review.');
+        reviewPlanKey=key;reviewPeriod=bridge.period();updateReviewBanner();
       } else if(action==='openStudent') {
         if (!isAdvisor()) throw Error('You are not an approved advisor.');
         const uid=target.dataset.student;
@@ -317,7 +797,9 @@
         if (!rows.length) throw Error('No assigned submissions found for this student.');
         const name=state.profiles.find(x=>x.id===uid)?.display_name || 'Student';
         await bridge.showReview(rows);
-        reviewing={student:uid,name,rows};
+        reviewing={student:uid,name,rows,hasNewer:false};
+        reviewDrafts.clear();
+        reviewPeriod=null;reviewPlanKey=null;
         window.switchView('planner');
         // A review begins in Compare. The bridge may already activate it in
         // earlier installs, so never toggle an already-visible comparison off.
@@ -330,19 +812,33 @@
         }
         updateReviewBanner();drawQuickSend();notice(`Viewing ${name}'s submitted plans. This is read-only.`);
       } else if(action==='exitReview') {
-        await bridge.exitReview();reviewing=null;updateReviewBanner();drawSend();drawQuickSend();notice('Returned to your original local planner.');
+        await bridge.exitReview();reviewing=null;reviewDrafts.clear();reviewPeriod=null;reviewPlanKey=null;updateReviewBanner();drawSend();drawQuickSend();drawStudentFeedback();notice('Returned to your original local planner.');
       } else if(action==='review') {
         if (!isAdvisor() || !reviewing) throw Error('Open an assigned student first.');
         const id=target.dataset.submission;
-        if (!reviewing.rows.some(x=>x.id===id)) throw Error('Unknown submitted plan.');
+        if (reviewRow(bridge.period(), reviewPlanKey)?.id !== id) throw Error('Select the submitted plan again before saving feedback.');
         const decision=target.dataset.decision;
         if(!['reviewed','changes_requested'].includes(decision)) throw Error('Invalid review decision.');
         const comment=elVal('mspReviewComment');if(comment.length>3000) throw Error('Feedback is too long.');
         checked(await db.from('plan_reviews').upsert({submission_id:id,advisor_id:user.id,decision,comment,reviewed_at:new Date().toISOString()},{onConflict:'submission_id'}));
+        reviewDrafts.delete(id);
         await loadState();notice('Advisor feedback saved.');
       }
-    } catch(e) {report(e);} finally {busy=false;if(target.isConnected)target.disabled=false;}
+    } catch(e) {report(e);} finally {
+      busy=false;
+      if (target.isConnected) { target.disabled=false; if (progress) target.innerHTML=oldLabel; }
+    }
   }
+  document.addEventListener('input', e => {
+    if (e.target.id === 'mspReviewComment' && reviewing) {
+      const row = reviewRow(bridge.period(),reviewPlanKey);
+      if (row) reviewDrafts.set(row.id,e.target.value);
+    }
+    if (e.target.id === 'mspStudentSearch') { studentSearch = e.target.value; filterStudents(); }
+  });
+  document.addEventListener('change', e => {
+    if (e.target.id === 'mspStudentFilter') { studentFilter = e.target.value; filterStudents(); }
+  });
   document.addEventListener('click', e => {
     const btn=e.target.closest('[data-msp-action]');
     if (!btn) return;
@@ -365,10 +861,12 @@
   });
   document.addEventListener('click',e=>{
     if (!bridge?.isReviewing()) return;
-    if (e.target.closest('.pd-btn, .ptab')) setTimeout(() => {updateReviewBanner();drawSend();drawQuickSend();},650);
+    const tab = e.target.closest('.ptab');
+    if (tab && /^tab-[ABC]$/.test(tab.id)) { reviewPlanKey = tab.id.slice(-1); reviewPeriod = bridge.period(); }
+    if (e.target.closest('.ptab')) queueMicrotask(updateReviewBanner);
   });
   document.addEventListener('click', e => {
-    if (e.target.closest('.pd-btn')) setTimeout(() => {drawSend();drawQuickSend();}, 650);
+    if (e.target.closest('.pd-btn')) setTimeout(() => {drawSend();drawQuickSend();}, 500);
   });
   // Keep the compact counts current when course choices change.
   let quickTimer = null;
@@ -383,8 +881,21 @@
     if (e.target.closest('#view-planner') && !e.target.closest('[data-msp-action]')) deferQuickSend();
   });
   // The planner redraws its selectors when period/plan changes.
+  // The planner sets the active period button immediately, before awaiting CSV.
+  // Observing that change avoids the old 650 ms delay and catches code-driven switches.
+  let observedPeriod = bridge?.period();
+  const periodGrid = $('periodGrid');
+  if (periodGrid) new MutationObserver(() => {
+    const next = bridge?.period();
+    if (!next || next === observedPeriod) return;
+    observedPeriod = next;
+    periodChanged();
+  }).observe(periodGrid,{subtree:true,attributes:true,attributeFilter:['class']});
   const observer=new MutationObserver(() => { if (bridge?.isReviewing()) bridge.lockInputs(); });
   const planview=$('view-planner');if(planview) observer.observe(planview,{childList:true,subtree:true});
+  const compareView=$('cmpview');
+  const compareObserver=new MutationObserver(syncReviewCompare);
+  if (compareView) compareObserver.observe(compareView,{childList:true,subtree:true});
   async function init() {
     if(!cfg.enabled){render();return;}
     if(!cfg.supabaseUrl || !cfg.supabaseAnonKey || !window.supabase?.createClient){
@@ -399,6 +910,7 @@
       db.auth.onAuthStateChange((_event,session)=>{
         const next=session?.user || null;
         if(next?.id===user?.id)return;
+        closeSnapshot(); stopRealtime(); ++studentRefreshSerial; ++advisorRefreshSerial; reviewDrafts.clear();
         user=next;
         if(bridge.isReviewing()) {void bridge.exitReview().then(()=>{reviewing=null;});}
         state=null;setTimeout(loadState,0);
@@ -406,5 +918,11 @@
     } catch(e){report(e);render();}
   }
   window.addEventListener('pageshow',()=>{drawSend();drawQuickSend();});
+  // Returning to a suspended tab also checks student feedback when live events
+  // were unavailable or the network connection was interrupted.
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible' && user && state && !isAdvisor())
+      void refreshStudentPeriod(bridge?.period());
+  });
   init();
 })();

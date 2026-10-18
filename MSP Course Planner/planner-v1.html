@@ -4313,6 +4313,11 @@
                 <span class="sb-ico" aria-hidden="true">&#128100;</span>
                 <span class="sb-text">Account <span class="sb-hint">Sign in</span></span>
             </button>
+            <a class="sb-link" id="mspSubmissionsLink" href="#submissions" data-view="submissions" hidden
+               onclick="switchView('submissions');closeSidebar()">
+                <span class="sb-ico" aria-hidden="true">&#128203;</span>
+                <span class="sb-text">My submissions <span class="sb-hint">View plans &amp; feedback</span></span>
+            </a>
             <a class="sb-link" id="mspStudentsLink" href="#students" data-view="students" hidden
                onclick="switchView('students');closeSidebar()">
                 <span class="sb-ico" aria-hidden="true">&#128101;</span>
@@ -4642,6 +4647,12 @@
                 </div>
                 <div id="resultCount" class="result-count" style="margin-bottom:16px"></div>
                 <div id="catalogueResults"></div>
+            </div>
+
+            <!-- MSP STUDENT SUBMISSIONS (separate from the planner) -->
+            <div id="view-submissions" class="view">
+                <div class="card"><div class="card-h"><div class="step">&#128203;</div><h2>My submissions</h2></div>
+                    <div class="card-b" id="mspSubmissionsBody"><p class="msp-caption">Loading submissions…</p></div></div>
             </div>
 
             <!-- MSP INTEGRATED ADVISOR STUDENTS -->
@@ -9435,7 +9446,7 @@
         if (s === 'pl') {
             document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
             const target = window.location.hash.replace('#', '') || 'dashboard';
-            switchView(['dashboard', 'planner', 'catalogue', 'info', 'students'].includes(target) ? target : 'dashboard');
+            switchView(['dashboard', 'planner', 'catalogue', 'info', 'students', 'submissions'].includes(target) ? target : 'dashboard');
         }
     }
 
@@ -14072,7 +14083,7 @@
             applyCatFilters();
 
             const initialHash = window.location.hash.replace('#', '');
-            if (['dashboard', 'planner', 'catalogue', 'info', 'students'].includes(initialHash)) {
+            if (['dashboard', 'planner', 'catalogue', 'info', 'students', 'submissions'].includes(initialHash)) {
                 switchView(initialHash);
             }
             setTimeout(() => {
@@ -14108,7 +14119,7 @@
     // Hash routing
     window.addEventListener('hashchange', () => {
         const h = window.location.hash.replace('#', '');
-        if (['dashboard', 'planner', 'catalogue', 'info', 'students'].includes(h) && h !== activeView) switchView(h);
+        if (['dashboard', 'planner', 'catalogue', 'info', 'students', 'submissions'].includes(h) && h !== activeView) switchView(h);
     });
 </script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>

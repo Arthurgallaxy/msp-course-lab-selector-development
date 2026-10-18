@@ -255,3 +255,17 @@ body.msp-advisor-review #planview input, body.msp-advisor-review #planview selec
 .msp-notice-dismiss { flex-shrink:0;border:0;background:transparent;color:inherit;font:inherit;font-size:17px;line-height:1;cursor:pointer; }
 #mspSubmissionDialog #mspNotice:not(:empty) { position:static;right:auto;bottom:auto;z-index:auto;max-width:none;margin:12px 22px 0;box-shadow:none; }
 @media(max-width:600px) { .msp-snapshot-head { padding:15px; } .msp-snapshot-content { padding:15px; } .msp-snapshot-grid.msp-snapshot-two { grid-template-columns:minmax(0,1fr); } .msp-history-delete { margin-left:0; } #mspSubmissionDialog #mspNotice:not(:empty) { margin:12px 15px 0; } }
+
+/* Student submission page: same card metrics, controls and status palette as My students. */
+#mspSubmissionsLink[hidden] { display:none!important; }
+#mspSendArea .msp-submissions-cta { margin:13px 0 0; }
+.msp-submissions-cta .btn { text-decoration:none; }
+.msp-submission-toolbar { grid-template-columns:repeat(3,minmax(0,1fr)); }
+.msp-submissions-list { display:grid;gap:10px;margin-top:18px; }
+.msp-submissions-list .msp-history-entry { padding:14px 16px;border:1px solid var(--g2);border-radius:var(--r);background:var(--g0); }
+.msp-submissions-result-count { margin:0; }
+.msp-submissions-empty { padding:18px;border:1px dashed var(--g3);border-radius:var(--r); }
+.msp-feedback-foot a { color:var(--navy);font-weight:600;text-decoration:underline;text-underline-offset:2px; }
+.msp-feedback-foot a:hover { color:var(--navy2); }
+@media(max-width:700px) { .msp-submission-toolbar { grid-template-columns:minmax(0,1fr); } }
+@media(max-width:520px) { .msp-submissions-list .msp-history-entry { padding:12px; } .msp-history-actions .btn { flex:1 1 auto;justify-content:center; } .msp-history-actions .msp-history-delete { flex:1 1 100%; } }

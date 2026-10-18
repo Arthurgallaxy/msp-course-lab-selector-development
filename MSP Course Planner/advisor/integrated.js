@@ -20,6 +20,11 @@
   let reviewPlanKey = null;
   let reviewPeriod = null;
   let studentFilter = 'all';
+  let submissionPeriodFilter = 'all';
+  let submissionReviewFilter = 'all';
+  let submissionVersionFilter = 'all';
+  let submissionRefreshing = false;
+  let submissionLastUpdated = null;
   let studentSearch = '';
   let studentRefreshSerial = 0;
   let advisorRefreshSerial = 0;
@@ -210,7 +215,7 @@
     const version = submissionVersions(state?.own).get(row.id);
     const current = compare ? selectedPeriodPlan() : null;
     $('mspSnapshotTitle').textContent = `${row.period} · Plan ${row.plan_key} · Version ${version?.version || '?'}`;
-    content.innerHTML = `<div class="msp-snapshot-meta">${statusHtml(row)} <span>Sent ${escapeHTML(dateText(row.submitted_at))}</span>${version?.latest ? '<span class="msp-status msp-status-reviewed">Latest version</span>' : '<span class="msp-status">Earlier version</span>'}</div>
+    content.innerHTML = `<div class="msp-snapshot-meta">${statusHtml(row)} <span>Sent ${escapeHTML(dateText(row.submitted_at))}</span>${version?.latest ? '<span class="msp-status">Latest version</span>' : '<span class="msp-status">Earlier version</span>'}</div>
       <p class="msp-caption">This is a saved, read-only copy. Opening it will not change your current planner.</p>
       <div class="msp-snapshot-actions"><button type="button" class="btn ${compare?'btn-gh':'btn-navy'}" data-msp-action="snapshotView">View submission</button>
         <button type="button" class="btn ${compare?'btn-navy':'btn-gh'}" data-msp-action="snapshotCompare" ${!bridge?.ready()?'disabled title="Planner is not loaded yet"':''}>Compare with current plan</button></div>
@@ -289,8 +294,8 @@
         const review = state.reviews?.find(x => x.submission_id === row.id);
         return `<div class="msp-feedback-item"><div class="msp-feedback-line"><b>Plan ${key}</b>${statusHtml(row)}<small>Sent ${escapeHTML(dateText(row.submitted_at))}</small></div>
           ${review?.comment ? `<p class="msp-feedback-comment">${escapeHTML(review.comment)}</p>` : ''}</div>`;
-      }).join('')}</div>` : `<p class="msp-caption">No plans submitted for ${escapeHTML(period)} yet. You can still view other periods' submissions in the history below.</p>`}
-      <p class="msp-caption msp-feedback-foot">This shows the newest submission of each plan; older versions remain in submission history.</p>
+      }).join('')}</div>` : `<p class="msp-caption">No plans submitted for ${escapeHTML(period)} yet. You can view other periods under My submissions.</p>`}
+      <p class="msp-caption msp-feedback-foot">This shows the newest submission of each plan. <a href="#submissions" onclick="switchView('submissions');closeSidebar()">View all submissions and earlier versions →</a></p>
       ${feedbackRefreshError ? '<p class="msp-warning" role="status">Could not check for updates. Showing the last loaded feedback.</p>' : ''}</div>`;
   }
 
@@ -373,8 +378,8 @@
         <button class="btn btn-gh" data-msp-action="submit" data-scope="all" ${!assignmentValid || !state?.profile || !allCount?'disabled':''}>
           Send all periods <small>${allCount} populated plan${allCount===1?'':'s'} across P1, P2, P4 and P5</small>
         </button>
-      </div><p class="msp-caption">Empty plans are excluded. Each submission is a permanent snapshot; editing your planner later will not change what you sent.</p>
-      <div id="mspSubmissionHistory">${renderOwnSubmissions()}</div>`;
+      </div><p class="msp-caption">Empty plans are excluded. Each submission is a saved snapshot; editing your planner later will not change what you sent.</p>
+      <p class="msp-submissions-cta"><a class="btn btn-gh" href="#submissions" onclick="switchView('submissions');closeSidebar()">View my submissions →</a></p>`;
   }
   function drawQuickSend() {
     const node = $('mspQuickSend');
@@ -400,47 +405,84 @@
       </div>`;
   }
 
-  function renderOwnSubmissions() {
-    const submissions = [...(state?.own || [])].sort((a,b) => new Date(b.submitted_at) - new Date(a.submitted_at) || String(b.id).localeCompare(String(a.id)));
-    const versions = submissionVersions(submissions);
-    const reviews = new Map((state?.reviews || []).map(r => [r.submission_id,r]));
-    if (!submissions.length) return '<p class="msp-caption">You have not sent any plans yet.</p>';
-    return `<details class="msp-history"><summary>My submitted plans (${submissions.length})</summary>
-      <p class="msp-caption msp-history-intro">Open any saved version to see exactly what you sent, or compare it with your current plan. Only earlier versions can be deleted.</p>
-      <div class="msp-history-list">${submissions.map(s => {
-        const version=versions.get(s.id) || {version:1,latest:true};
+  // Standalone student submissions page: all periods, all versions, and feedback.
+  // Render metadata only; full plan_data is loaded on demand by openSnapshot().
+  function drawSubmissionHistory() {
+    const node = $('mspSubmissionsBody');
+    if (!node) return;
+    if (!cfg.enabled || !db) { node.innerHTML = '<p class="msp-caption">Advisor integration is not configured.</p>'; return; }
+    if (!user || !state) {
+      node.innerHTML = '<p class="msp-caption">Sign in to see the plans you have sent to your advisor.</p><button class="btn btn-navy" type="button" data-msp-action="account">Sign in</button>';
+      return;
+    }
+    if (isAdvisor()) { node.innerHTML = '<p class="msp-caption">Advisor accounts can review plans under My students.</p>'; return; }
+    const all = state.own || [];
+    const newest = submissionVersions(all);
+    const lastUpdated = submissionLastUpdated ? `Updated ${submissionLastUpdated.toLocaleTimeString(undefined,{hour:'2-digit',minute:'2-digit'})}` : 'Synced with your account';
+    node.innerHTML = `<div class="msp-students-intro"><div class="msp-students-heading">
+      <p class="msp-caption">View exactly what you sent, compare with your current plan, and manage saved versions. Your current planner is not changed.</p>
+      <div class="msp-students-refresh"><small>${escapeHTML(lastUpdated)}</small><button type="button" class="btn btn-gh msp-refresh-btn" data-msp-action="refreshSubmissions" ${submissionRefreshing?'disabled':''}>${submissionRefreshing?'Refreshing…':'↻ Refresh'}</button></div></div>
+      <div class="msp-student-stats"><div><b>${all.length}</b><span>Total submissions</span></div>
+        <div><b>${[...newest.values()].filter(v=>v.latest).length}</b><span>Latest plans</span></div>
+        <div><b>${all.filter(s=>reviewInfo(s).key==='pending').length}</b><span>Awaiting review</span></div></div>
+      <div class="msp-submission-toolbar msp-students-toolbar">
+        <label for="mspSubmissionPeriod">Period<select id="mspSubmissionPeriod"><option value="all">All periods</option>${PERIODS.map(p=>`<option value="${p}">${p}</option>`).join('')}</select></label>
+        <label for="mspSubmissionReview">Review status<select id="mspSubmissionReview"><option value="all">All statuses</option><option value="pending">Awaiting review</option><option value="reviewed">Reviewed</option><option value="changes">Changes requested</option></select></label>
+        <label for="mspSubmissionVersion">Version<select id="mspSubmissionVersion"><option value="all">All versions</option><option value="latest">Latest per plan</option><option value="older">Earlier versions</option></select></label>
+      </div></div><div id="mspSubmissionResults" class="msp-submissions-list" aria-live="polite"></div>`;
+    $('mspSubmissionPeriod').value = submissionPeriodFilter;
+    $('mspSubmissionReview').value = submissionReviewFilter;
+    $('mspSubmissionVersion').value = submissionVersionFilter;
+    filterSubmissions();
+  }
+  function filterSubmissions() {
+    const node = $('mspSubmissionResults');
+    if (!node || !state || isAdvisor()) return;
+    const all = [...(state.own || [])].sort((a,b)=> new Date(b.submitted_at) - new Date(a.submitted_at) || String(b.id).localeCompare(String(a.id)));
+    const versions = submissionVersions(all);
+    const reviews = new Map((state.reviews || []).map(r => [r.submission_id,r]));
+    const rows = all.filter(s => {
+      const v = versions.get(s.id);
+      return (submissionPeriodFilter === 'all' || s.period === submissionPeriodFilter) &&
+        (submissionReviewFilter === 'all' || reviewInfo(s).key === submissionReviewFilter) &&
+        (submissionVersionFilter === 'all' || (submissionVersionFilter === 'latest' ? v?.latest : !v?.latest));
+    });
+    node.innerHTML = `<p class="msp-caption msp-submissions-result-count">Showing ${rows.length} of ${all.length} submission${all.length===1?'':'s'}</p>` +
+      (rows.map(s => {
+        const version=versions.get(s.id) || {version:Number(s.version_number)||1,latest:true};
         const review=reviews.get(s.id);
-        return `<div class="msp-history-entry"><div class="msp-history-header"><div><b>${escapeHTML(s.period)} · Plan ${escapeHTML(s.plan_key)}</b>
+        return `<section class="msp-history-entry" aria-label="${escapeHTML(s.period)} Plan ${escapeHTML(s.plan_key)} Version ${version.version}">
+          <div class="msp-history-header"><div><b>${escapeHTML(s.period)} · Plan ${escapeHTML(s.plan_key)}</b>
           <span class="msp-caption">Version ${version.version} · Sent ${escapeHTML(dateText(s.submitted_at))}</span></div>
-          <div class="msp-history-badges">${version.latest?'<span class="msp-status msp-status-reviewed">Latest</span>':'<span class="msp-status">Older version</span>'}${statusHtml(s)}</div></div>
+          <div class="msp-history-badges">${version.latest?'<span class="msp-status">Latest version</span>':'<span class="msp-status">Earlier version</span>'}${statusHtml(s)}</div></div>
           ${review?.comment ? `<p class="msp-history-comment">${escapeHTML(review.comment)}</p>` : ''}
           <div class="msp-history-actions"><button type="button" class="btn btn-navy" data-msp-action="viewSubmission" data-submission="${escapeHTML(s.id)}">View saved plan</button>
             <button type="button" class="btn btn-gh" data-msp-action="compareSubmission" data-submission="${escapeHTML(s.id)}" ${!bridge?.ready()?'disabled title="Planner is not ready"':''}>Compare with current</button>
-            ${!version.latest ? `<button type="button" class="btn btn-gh msp-history-delete" data-msp-action="deleteSubmission" data-submission="${escapeHTML(s.id)}">Delete version</button>` : ''}</div></div>`;
-      }).join('')}</div></details>`;
+            <button type="button" class="btn btn-gh msp-history-delete" data-msp-action="deleteSubmission" data-submission="${escapeHTML(s.id)}">Delete submission</button></div></section>`;
+      }).join('') || '<p class="msp-caption msp-submissions-empty">No submissions match your filters.</p>');
   }
-  function drawSubmissionHistory() {
-    const node=$('mspSubmissionHistory');
-    if (!node) return;
-    const wasOpen=node.querySelector('details')?.open;
-    node.innerHTML=renderOwnSubmissions();
-    if (wasOpen && node.querySelector('details')) node.querySelector('details').open=true;
-  }
-  async function deleteOlderSubmission(id) {
+  async function deleteSubmission(id) {
     if (!user || !state || isAdvisor()) throw Error('Sign in as a student to manage your submissions.');
     const row=ownSubmission(id);
     const version=submissionVersions(state.own).get(id);
-    if (!row || !version || version.latest) throw Error('You can only delete an earlier version of your own plan.');
-    if (!confirm(`Permanently delete ${row.period} Plan ${row.plan_key} · version ${version.version}?\n\nThis also deletes any advisor review and feedback attached to that version. This cannot be undone.`)) return;
-    // The database RPC independently checks the owner AND that a newer version exists.
-    checked(await db.rpc('delete_older_plan_submission',{p_submission_id:id}));
-    state.own=state.own.filter(s=>s.id!==id);
-    state.reviews=(state.reviews||[]).filter(r=>r.submission_id!==id);
-    closeSnapshot();
-    drawSubmissionHistory();
-    drawStudentFeedback();
-    notice(`Deleted version ${version.version} of ${row.period} Plan ${row.plan_key}.`);
-    void refreshStudentPeriod(bridge?.period());
+    if (!row || !version) throw Error('This submission is no longer available. Refresh and try again.');
+    const sameSlot=(state.own || []).filter(s => s.period===row.period && s.plan_key===row.plan_key);
+    const effect = version.latest && sameSlot.length===1
+      ? 'This is the ONLY submitted version for this plan; deleting it will leave no submission for this period and plan.'
+      : version.latest ? 'This is the LATEST submission. The next newest remaining version will become the latest.'
+      : 'This is an earlier submission.';
+    if (!confirm(`Permanently delete ${row.period} Plan ${row.plan_key} · Version ${version.version}?\n\n${effect}\n\nAny advisor review and feedback attached to this submission will also be permanently deleted. This cannot be undone.`)) return;
+    // SECURITY DEFINER RPC verifies auth.uid() and row ownership in PostgreSQL.
+    checked(await db.rpc('delete_plan_submission',{p_submission_id:id}));
+    if (user && state) {
+      state.own=state.own.filter(s=>s.id!==id);
+      state.reviews=(state.reviews||[]).filter(r=>r.submission_id!==id);
+      if (selectedSnapshot?.row.id===id) closeSnapshot();
+      drawSubmissionHistory();
+      drawStudentFeedback();
+    }
+    notice(`Deleted Version ${version.version} of ${row.period} Plan ${row.plan_key}.`);
+    void refreshStudentPeriod(null);
   }
   // Advisor dashboard: filter the newest submissions without concealing older history.
   function drawStudents() {
@@ -544,7 +586,7 @@
     const review = state?.reviews?.find(x => x.submission_id === row?.id);
     banner.innerHTML = `<div class="msp-review-header"><div><b>Viewing ${escapeHTML(reviewing.name)}'s plans</b><br><small>Read-only review · ${escapeHTML(period)} · Select a submitted plan to give feedback</small></div>
       <button class="btn btn-navy" data-msp-action="exitReview">Exit student review</button></div>
-      ${reviewing.hasNewer ? '<p class="msp-warning msp-new-version-warning" role="status">Newer submissions are available. Exit review and reopen this student to load their latest plans.</p>' : ''}
+      ${reviewing.hasNewer ? '<p class="msp-warning msp-new-version-warning" role="status">Submitted plans have changed. Exit review and reopen the student to load their current submitted plans.</p>' : ''}
       <div class="msp-review-tabs" role="group" aria-label="Choose a plan for advisor feedback">${KEYS.map(key => {
         const slot = reviewRow(period,key);
         return `<button type="button" class="msp-review-tab ${key === reviewPlanKey ? 'active' : ''}" data-msp-action="selectReviewPlan" data-plan="${key}" aria-pressed="${String(key === reviewPlanKey)}" ${!slot?'disabled':''}>
@@ -585,6 +627,7 @@
       if (n!==refreshSerial || uid!==user?.id) return;
       state={profile,advisors:advisors||[],assignment,request,own:own||[],advisor,assigned,reviews,profiles};
       if (advisor?.active) advisorLastUpdated = new Date();
+      else submissionLastUpdated = new Date();
       render();
       if (selectedSnapshot) {
         if (ownSubmission(selectedSnapshot.row.id)) drawSnapshot();
@@ -595,10 +638,11 @@
   }
   // Cache-first period changes: repaint synchronously; fetch only this period's
   // metadata and reviews in the background (no plan_data downloads).
-  async function refreshStudentPeriod(period) {
+  async function refreshStudentPeriod(period, manual=false) {
     if (!db || !user || !state || isAdvisor() || (period !== null && !PERIODS.includes(period))) return;
     const uid = user.id;
     const n = ++studentRefreshSerial;
+    if (manual) { submissionRefreshing=true; drawSubmissionHistory(); }
     try {
       let query = db.from('plan_submissions').select('id,period,plan_key,submitted_at,version_number').eq('student_id',uid);
       if (period !== null) query = query.eq('period',period);
@@ -611,6 +655,8 @@
       state.own = [...(state.own || []).filter(row => period !== null && row.period !== period),...rows];
       state.reviews = [...(state.reviews || []).filter(row => !oldIds.has(row.submission_id)),...reviews];
       feedbackRefreshError = false;
+      submissionLastUpdated = new Date();
+      if (manual) submissionRefreshing=false;
       drawStudentFeedback();
       drawSubmissionHistory();
       if (selectedSnapshot) {
@@ -622,7 +668,10 @@
         feedbackRefreshError = true;
         drawStudentFeedback();
         console.warn('Could not refresh advisor feedback:', err);
+        if (manual) notice(`Could not refresh submissions: ${err.message || err}`, true);
       }
+    } finally {
+      if (n === studentRefreshSerial && manual) { submissionRefreshing=false; drawSubmissionHistory(); }
     }
   }
 
@@ -658,7 +707,8 @@
         const remote = newestBySlot(assigned.filter(row => row.student_id === reviewing.student));
         const opened = newestBySlot(reviewing.rows);
         reviewing.hasNewer = remote.some(row => !opened.some(old =>
-          old.period === row.period && old.plan_key === row.plan_key && old.id === row.id));
+          old.period === row.period && old.plan_key === row.plan_key && old.id === row.id)) ||
+          opened.some(old => !assigned.some(row => row.id === old.id));
       }
       drawStudents();
       if (reviewing) updateReviewBanner();
@@ -720,9 +770,11 @@
   function render() {
     const studentsLink=$('mspStudentsLink');
     if (studentsLink) studentsLink.hidden = !isAdvisor();
+    const submissionsLink=$('mspSubmissionsLink');
+    if (submissionsLink) submissionsLink.hidden = !user || !state || isAdvisor();
     const button=$('mspAccountLink');
     if (button) button.querySelector('.sb-hint').textContent = user ? user.email : 'Sign in';
-    drawAccount();drawSend();drawQuickSend();drawStudentFeedback();drawStudents();updateReviewBanner();
+    drawAccount();drawSend();drawQuickSend();drawStudentFeedback();drawSubmissionHistory();drawStudents();updateReviewBanner();
   }
   async function act(action, target) {
     if (busy && action === 'closeSnapshot') { closeSnapshot(); return; }
@@ -730,7 +782,7 @@
     busy=true;
     target.disabled=true;
     const oldLabel = target.innerHTML;
-    const progress = {deleteSubmission:'Deleting…',submit:'Submitting…',requestAdvisor:'Sending request…',saveAdvisor:'Saving…',saveName:'Saving…',logout:'Signing out…',review:'Saving review…'}[action];
+    const progress = {deleteSubmission:'Deleting…',refreshSubmissions:'Refreshing…',submit:'Submitting…',requestAdvisor:'Sending request…',saveAdvisor:'Saving…',saveName:'Saving…',logout:'Signing out…',review:'Saving review…'}[action];
     if (progress) target.textContent=progress;
     try {
       notice('');
@@ -750,7 +802,10 @@
       } else if (action==='closeSnapshot') {
         closeSnapshot();
       } else if (action==='deleteSubmission') {
-        await deleteOlderSubmission(target.dataset.submission);
+        await deleteSubmission(target.dataset.submission);
+      } else if (action==='refreshSubmissions') {
+        if (isAdvisor()) throw Error('Only students can refresh their submissions.');
+        await refreshStudentPeriod(null, true);
       } else if (action==='refreshStudents') {
         if (!isAdvisor()) throw Error('Only advisors can refresh the student list.');
         await refreshAdvisorData();
@@ -838,6 +893,9 @@
   });
   document.addEventListener('change', e => {
     if (e.target.id === 'mspStudentFilter') { studentFilter = e.target.value; filterStudents(); }
+    if (e.target.id === 'mspSubmissionPeriod') { submissionPeriodFilter = e.target.value; filterSubmissions(); }
+    if (e.target.id === 'mspSubmissionReview') { submissionReviewFilter = e.target.value; filterSubmissions(); }
+    if (e.target.id === 'mspSubmissionVersion') { submissionVersionFilter = e.target.value; filterSubmissions(); }
   });
   document.addEventListener('click', e => {
     const btn=e.target.closest('[data-msp-action]');

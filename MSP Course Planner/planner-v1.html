@@ -3971,151 +3971,151 @@
         #plannerSaveStatus[data-state="error"], #plannerSaveStatus[data-state="blocked"] { color: #ffd49b; font-weight: 600; }
         @media print { .planner-backup { display: none; } }
 
-/* Standalone MSP Course Planner mobile layout fixes.
-   Only applied on screens 640px wide or narrower.
-   Does not modify planner logic or the shared MSP portal navigation. */
-@media screen and (max-width: 640px) {
-  .app-layout {
-    width: 100%;
-    min-width: 0;
-  }
+        /* Standalone MSP Course Planner mobile layout fixes.
+           Only applied on screens 640px wide or narrower.
+           Does not modify planner logic or the shared MSP portal navigation. */
+        @media screen and (max-width: 640px) {
+            .app-layout {
+                width: 100%;
+                min-width: 0;
+            }
 
-  .content-area {
-    flex: 1 1 100%;
-    width: 100%;
-    max-width: 100%;
-    min-width: 0;
-  }
+            .content-area {
+                flex: 1 1 100%;
+                width: 100%;
+                max-width: 100%;
+                min-width: 0;
+            }
 
-  .main, .view, #planview, .card, .card-b {
-    min-width: 0;
-    max-width: 100%;
-    box-sizing: border-box;
-  }
+            .main, .view, #planview, .card, .card-b {
+                min-width: 0;
+                max-width: 100%;
+                box-sizing: border-box;
+            }
 
-  /* Keep all three saved plans accessible without widening the page. */
-  .plan-tabs {
-    display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 6px;
-  }
-  .plan-tabs .ptab {
-    width: 100%;
-    min-width: 0;
-    padding: 10px 5px;
-  }
-  .plan-tabs .ptab-cmp {
-    grid-column: 1 / -1;
-  }
+            /* Keep all three saved plans accessible without widening the page. */
+            .plan-tabs {
+                display: grid;
+                grid-template-columns: repeat(3, minmax(0, 1fr));
+                gap: 6px;
+            }
+            .plan-tabs .ptab {
+                width: 100%;
+                min-width: 0;
+                padding: 10px 5px;
+            }
+            .plan-tabs .ptab-cmp {
+                grid-column: 1 / -1;
+            }
 
-  /* A card subtitle must not determine the card's minimum width. */
-  .card-h {
-    flex-wrap: wrap;
-  }
-  .card-h .hint {
-    flex: 1 1 100%;
-    min-width: 0;
-    max-width: 100%;
-    margin-left: 0;
-    overflow-wrap: anywhere;
-  }
+            /* A card subtitle must not determine the card's minimum width. */
+            .card-h {
+                flex-wrap: wrap;
+            }
+            .card-h .hint {
+                flex: 1 1 100%;
+                min-width: 0;
+                max-width: 100%;
+                margin-left: 0;
+                overflow-wrap: anywhere;
+            }
 
-  /* The inline two-column grid in the study-load options needs one column on phones. */
-  #customLoadControls > div:first-child {
-    grid-template-columns: minmax(0, 1fr) !important;
-  }
+            /* The inline two-column grid in the study-load options needs one column on phones. */
+            #customLoadControls > div:first-child {
+                grid-template-columns: minmax(0, 1fr) !important;
+            }
 
-  .field, .sw, .sw select {
-    min-width: 0;
-    max-width: 100%;
-  }
+            .field, .sw, .sw select {
+                min-width: 0;
+                max-width: 100%;
+            }
 
-  /* Details such as course prerequisites may contain long strings. */
-  .cpanel, .guidance {
-    overflow-wrap: anywhere;
-  }
-}
+            /* Details such as course prerequisites may contain long strings. */
+            .cpanel, .guidance {
+                overflow-wrap: anywhere;
+            }
+        }
 
-/* Transcript dashboard: graduation progress and semester history at phone widths.
-   This is a mobile-only override. It changes presentation, not calculations. */
-@media screen and (max-width: 640px) {
-  /* The desktop progress header has a fixed 180px title and 80px summary.
-     Put its content on separate rows rather than letting it overflow. */
-  .prog-section {
-    min-width: 0;
-    max-width: 100%;
-  }
+        /* Transcript dashboard: graduation progress and semester history at phone widths.
+           This is a mobile-only override. It changes presentation, not calculations. */
+        @media screen and (max-width: 640px) {
+            /* The desktop progress header has a fixed 180px title and 80px summary.
+               Put its content on separate rows rather than letting it overflow. */
+            .prog-section {
+                min-width: 0;
+                max-width: 100%;
+            }
 
-  .prog-header {
-    display: grid;
-    grid-template-columns: 36px minmax(0, 1fr) auto;
-    grid-template-areas:
+            .prog-header {
+                display: grid;
+                grid-template-columns: 36px minmax(0, 1fr) auto;
+                grid-template-areas:
       "icon title arrow"
       "summary summary summary"
       "bar bar pct";
-    align-items: center;
-    gap: 9px 12px;
-    padding: 14px 16px;
-    min-width: 0;
-  }
+                align-items: center;
+                gap: 9px 12px;
+                padding: 14px 16px;
+                min-width: 0;
+            }
 
-  .prog-header .prog-icon { grid-area: icon; }
-  .prog-header h3 {
-    grid-area: title;
-    width: auto;
-    min-width: 0;
-    white-space: normal;
-    overflow: visible;
-    text-overflow: clip;
-    overflow-wrap: anywhere;
-    line-height: 1.35;
-  }
-  .prog-header .prog-summary {
-    grid-area: summary;
-    min-width: 0;
-    max-width: 100%;
-    text-align: left;
-    overflow-wrap: anywhere;
-    line-height: 1.4;
-  }
-  .prog-header .prog-bar-wrap {
-    grid-area: bar;
-    min-width: 0;
-    width: 100%;
-  }
-  .prog-header .prog-pct {
-    grid-area: pct;
-    width: auto;
-    text-align: right;
-  }
-  .prog-header .prog-arrow {
-    grid-area: arrow;
-    justify-self: end;
-  }
+            .prog-header .prog-icon { grid-area: icon; }
+            .prog-header h3 {
+                grid-area: title;
+                width: auto;
+                min-width: 0;
+                white-space: normal;
+                overflow: visible;
+                text-overflow: clip;
+                overflow-wrap: anywhere;
+                line-height: 1.35;
+            }
+            .prog-header .prog-summary {
+                grid-area: summary;
+                min-width: 0;
+                max-width: 100%;
+                text-align: left;
+                overflow-wrap: anywhere;
+                line-height: 1.4;
+            }
+            .prog-header .prog-bar-wrap {
+                grid-area: bar;
+                min-width: 0;
+                width: 100%;
+            }
+            .prog-header .prog-pct {
+                grid-area: pct;
+                width: auto;
+                text-align: right;
+            }
+            .prog-header .prog-arrow {
+                grid-area: arrow;
+                justify-self: end;
+            }
 
-  /* Expanded transcript items also need to respect the card width. */
-  .prog-body { min-width: 0; padding-right: 16px; padding-left: 16px; }
-  .prog-item { flex-wrap: wrap; }
-  .prog-item .pi-title { min-width: 0; overflow-wrap: anywhere; }
-  .prog-sub { overflow-wrap: anywhere; }
+            /* Expanded transcript items also need to respect the card width. */
+            .prog-body { min-width: 0; padding-right: 16px; padding-left: 16px; }
+            .prog-item { flex-wrap: wrap; }
+            .prog-item .pi-title { min-width: 0; overflow-wrap: anywhere; }
+            .prog-sub { overflow-wrap: anywhere; }
 
-  /* Semester history uses the same desktop-only, single-row assumption. */
-  .sem-header {
-    display: grid;
-    grid-template-columns: auto minmax(0, 1fr);
-    grid-template-areas:
+            /* Semester history uses the same desktop-only, single-row assumption. */
+            .sem-header {
+                display: grid;
+                grid-template-columns: auto minmax(0, 1fr);
+                grid-template-areas:
       "arrow title"
       ". info";
-    gap: 4px 9px;
-    padding: 13px 16px;
-    min-width: 0;
-  }
-  .sem-header .sem-arrow { grid-area: arrow; }
-  .sem-header h3 { grid-area: title; min-width: 0; overflow-wrap: anywhere; }
-  .sem-header .sem-info { grid-area: info; min-width: 0; overflow-wrap: anywhere; }
-  .sem-body { min-width: 0; padding-right: 16px; padding-left: 16px; }
-}
-    /* MSP MOBILE FIX: END */
+                gap: 4px 9px;
+                padding: 13px 16px;
+                min-width: 0;
+            }
+            .sem-header .sem-arrow { grid-area: arrow; }
+            .sem-header h3 { grid-area: title; min-width: 0; overflow-wrap: anywhere; }
+            .sem-header .sem-info { grid-area: info; min-width: 0; overflow-wrap: anywhere; }
+            .sem-body { min-width: 0; padding-right: 16px; padding-left: 16px; }
+        }
+        /* MSP MOBILE FIX: END */
 
         /* Period selection within the Planner */
         .planner-period-card {
@@ -4253,6 +4253,7 @@
         }
 
     </style>
+    <link rel="stylesheet" href="advisor/integrated.css">
 </head>
 <body>
 <div class="app-layout">
@@ -4306,6 +4307,22 @@
                         d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg></span>
                 <span class="sb-text">Course Catalogue<span class="sb-hint">Browse all courses</span></span>
             </a>
+
+            <!-- MSP INTEGRATED ADVISOR NAV -->
+            <button type="button" class="sb-link" id="mspAccountLink" data-msp-action="account">
+                <span class="sb-ico" aria-hidden="true">&#128100;</span>
+                <span class="sb-text">Account <span class="sb-hint">Sign in</span></span>
+            </button>
+            <a class="sb-link" id="mspSubmissionsLink" href="#submissions" data-view="submissions" hidden
+               onclick="switchView('submissions');closeSidebar()">
+                <span class="sb-ico" aria-hidden="true">&#128203;</span>
+                <span class="sb-text">My submissions <span class="sb-hint">View plans &amp; feedback</span></span>
+            </a>
+            <a class="sb-link" id="mspStudentsLink" href="#students" data-view="students" hidden
+               onclick="switchView('students');closeSidebar()">
+                <span class="sb-ico" aria-hidden="true">&#128101;</span>
+                <span class="sb-text">My students <span class="sb-hint">Review submitted plans</span></span>
+            </a>
             <div class="sb-divider"></div>
             <a class="sb-link" href="#info" data-view="info" onclick="switchView('info');closeSidebar()">
                 <span class="sb-ico"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
@@ -4346,7 +4363,7 @@
                         </svg>
                     </span>
 
-                                <span class="sb-text">
+                <span class="sb-text">
                         Tutorial
                         <span class="sb-hint">Replay the guided tour</span>
                     </span>
@@ -4372,8 +4389,7 @@
         </section>
         <div class="sb-footer">
             <img id="logoMain" src="assets/logo-main.png" alt="msp" class="logo-main">
-            <div class="sb-privacy">Planner and transcript data stay in your browser.
-                Only feedback you choose to submit is sent externally.</div>
+            <div class="sb-privacy">Your transcript, grades and GPA stay in your browser. Selected plans are sent to your advisor only when you press Send.</div>
         </div>
     </aside>
 
@@ -4455,6 +4471,8 @@
                             <div class="pd-dates">29 Mar – May</div>
                         </button>
                     </div>
+                    <!-- MSP ADVISOR REFINEMENT: QUICK SEND -->
+                    <div id="mspQuickSend" class="msp-quick-send" aria-label="Quick planner submission" hidden></div>
                     <div class="pd-meta"><strong id="mc2">Loading&hellip;</strong><span id="mc2sub"
                                                                                         style="display:block;opacity:.75;margin-top:1px"></span>
                     </div>
@@ -4523,6 +4541,7 @@
                         </div>
                     </div>
                 </div>
+                <section id="mspReviewBanner" class="msp-review-banner" hidden></section>
                 <div id="planview">
                     <div class="card" id="coursecard">
                         <div class="card-h">
@@ -4596,6 +4615,12 @@
                         </div>
                     </div>
                 </div>
+
+                <!-- MSP INTEGRATED ADVISOR SEND -->
+                <div class="card" id="mspSendArea">
+                    <div class="card-h"><div class="step">&#9993;</div><h2>Send your plans to your study advisor</h2></div>
+                    <div class="card-b" id="mspSendBody"><p>Loading advisor integration…</p></div>
+                </div>
                 <div id="cmpview" class="cmp-view"></div>
             </div>
 
@@ -4624,6 +4649,17 @@
                 <div id="catalogueResults"></div>
             </div>
 
+            <!-- MSP STUDENT SUBMISSIONS (separate from the planner) -->
+            <div id="view-submissions" class="view">
+                <div class="card"><div class="card-h"><div class="step">&#128203;</div><h2>My submissions</h2></div>
+                    <div class="card-b" id="mspSubmissionsBody"><p class="msp-caption">Loading submissions…</p></div></div>
+            </div>
+
+            <!-- MSP INTEGRATED ADVISOR STUDENTS -->
+            <div id="view-students" class="view">
+                <div class="card"><div class="card-h"><div class="step">&#128101;</div><h2>My students</h2></div>
+                    <div class="card-b" id="mspStudentsBody"></div></div>
+            </div>
             <!-- ═══ VIEW: INFO ═══ -->
             <div id="view-info" class="view">
                 <div class="card">
@@ -4637,8 +4673,7 @@
         </main>
 
         <footer>
-            <div class="ft-privacy">This tool processes your transcript entirely in your browser. No data is uploaded to
-                any server.
+            <div class="ft-privacy">Your transcript is processed locally. Selected plans are sent to your study advisor only when you explicitly submit them.
             </div>
             <div style="font-size:10px;color:var(--g4);margin-top:2px">This tool is for planning purposes only and does
                 not replace official academic advising. Always verify with your Academic Advisor.
@@ -4647,6 +4682,13 @@
         </footer>
     </div><!-- /content-area -->
 </div><!-- /app-layout -->
+<!-- MSP INTEGRATED ADVISOR ACCOUNT -->
+<dialog id="mspAccountDialog" aria-label="MSP Advisor account">
+    <div class="msp-dialog-head"><div class="msp-dialog-brand"><span class="msp-dialog-eyebrow">MSP Course Planner</span><strong>Account &amp; advising</strong></div>
+        <button type="button" onclick="document.getElementById('mspAccountDialog').close()" aria-label="Close account">&times;</button></div>
+    <div id="mspAccountBody"></div>
+</dialog>
+<div id="mspNotice" role="status" aria-live="polite"></div>
 </body>
 <script>
     // ═══════════════════════════════════════════════════
@@ -4654,7 +4696,7 @@
     // ═══════════════════════════════════════════════════
 
     //THIS VERSION SHOULD BE CHANGED ON EVERY UPDATE (to the same as the version.json file) OR IT WILL CAUSE PERMANENT UPDATE POPUPS
-    const APP_VERSION = '1.2.0';
+    const APP_VERSION = '1.3.0';
     const updateurl = 'https://raw.githubusercontent.com/arthurgallaxy/msp-course-lab-selector-development/main/MSP%20Course%20Planner/version.json';
     const FEEDBACK_ENDPOINT = 'https://formspree.io/f/maeyaoen';
 
@@ -4676,6 +4718,7 @@
             canDismiss: false
         }
     };
+
 
     function getWaiverEmailLink(course, missingPrereqs, periodOverride = currentPeriod) {
         const coordName = course.Coordinator || "Coordinator";
@@ -4904,6 +4947,7 @@
         return 0;
     }
 
+
     async function checkForUpdates() {
         try {
             const response = await fetch(`${updateurl}?t=${Date.now()}`);
@@ -4954,6 +4998,7 @@
         }
     }
 
+
     function snoozeUpdatePrompt(version, priority) {
         const cleanVersion = String(version || '').trim();
         const cleanPriority = String(priority || 'low').trim().toLowerCase();
@@ -4975,6 +5020,7 @@
         const modal = document.getElementById('updatePrompt');
         if (modal) modal.remove();
     }
+
 
     function showUpdatePrompt(updateInfo) {
         const existing = document.getElementById('updatePrompt');
@@ -5022,6 +5068,7 @@
         document.body.appendChild(modal);
     }
 
+
     function shouldShowUpdate(updateInfo) {
         const latestVersion = String(updateInfo.latestVersion || '').trim();
         const priority = String(updateInfo.priority || 'low').trim().toLowerCase();
@@ -5037,6 +5084,7 @@
         return Date.now() >= snoozeUntil;
     }
 
+
     function escapeHTML(value) {
         return String(value)
             .replaceAll('&', '&amp;')
@@ -5045,6 +5093,7 @@
             .replaceAll('"', '&quot;')
             .replaceAll("'", '&#039;');
     }
+
 
     function escapeAttribute(value) {
         return escapeHTML(value);
@@ -5267,10 +5316,12 @@
         }, 0);
     }
 
+
     function closeFeedbackModal() {
         const modal = document.getElementById('feedbackPrompt');
         if (modal) modal.remove();
     }
+
 
     function updateFeedbackFormType() {
         const type = document.getElementById('feedbackType')?.value;
@@ -5283,6 +5334,7 @@
                 ? ''
                 : 'none';
     }
+
 
     async function submitFeedback(event) {
         event.preventDefault();
@@ -5422,6 +5474,7 @@
         }
     }
 
+
     function showFeedbackStatus(message, type) {
         const status = document.getElementById('feedbackStatus');
         if (!status) return;
@@ -5455,6 +5508,7 @@
             JSON.stringify(draft)
         );
     }
+
 
     function getDeadlines() {
         return DEADLINES_BY_PERIOD[currentPeriod] || DEADLINES_BY_PERIOD.P5;
@@ -5557,6 +5611,7 @@
         return route;
     }
 
+
     function saveProjectionRoute() {
         if (typeof tutorialDemoMode !== 'undefined' && tutorialDemoMode) {
             return;
@@ -5566,6 +5621,7 @@
             localStorage.setItem(PROJECTION_ROUTE_KEY, JSON.stringify(projectionPlanByPeriod));
         } catch (_) {}
     }
+
 
     function setProjectionPlan(period, planKey) {
         if (!PERIOD_ORDER.includes(period) || !['', 'A', 'B', 'C'].includes(planKey)) {
@@ -5582,6 +5638,7 @@
             card.outerHTML = buildGraduationProjectionCard();
         }
     }
+
 
     function getProjectedModulesForPlan(period, planKey) {
         const plan = ALL_PLANS[period]?.[planKey];
@@ -5655,6 +5712,7 @@
             externalCount
         };
     }
+
 
     function calculateGraduationProjection() {
         const t = APP.transcript;
@@ -5786,6 +5844,7 @@
         };
     }
 
+
     function getProjectionPlanECTS(
         period,
         planKey
@@ -5803,11 +5862,13 @@
         );
     }
 
+
     function getProjectionPlanModuleCount(period, planKey) {
         const result = getProjectedModulesForPlan(period, planKey);
 
         return (result.modules.length + result.externalCount);
     }
+
 
     function buildGraduationProjectionCard() {
         const p = calculateGraduationProjection();
@@ -5830,7 +5891,7 @@
                 !projectionPlanByPeriod[period]
                     ? 'selected'
                     : ''
-                        }
+            }
                 >
                     Do not include
                 </option>
@@ -6143,6 +6204,7 @@
         return PERIOD_ORDER.slice(0, index);
     }
 
+
     function isSwitchDeadlineOpen(period) {
         const deadline =
             DEADLINES_BY_PERIOD[period]?.switchISO;
@@ -6155,6 +6217,7 @@
 
         return Date.now() <= timestamp;
     }
+
 
     function plannedCodesForPeriod(period, planKey) {
         const plan = ALL_PLANS[period]?.[planKey];
@@ -6596,6 +6659,7 @@
             .join('');
     }
 
+
     async function inspectPrerequisiteRoute(period, planKey){
         if (!PERIOD_ORDER.includes(period) || !['A','B','C'].includes(planKey)) {
             return;
@@ -6610,8 +6674,8 @@
             switchPlan(planKey);
 
             requestAnimationFrame(() => {document.getElementById(`tab-${planKey}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' });});
-    } catch (err) {
-        console.error(`could not inspect ${period} Plan ${planKey}`);}
+        } catch (err) {
+            console.error(`could not inspect ${period} Plan ${planKey}`);}
     }
 
     let plannerReady = false;
@@ -6623,6 +6687,90 @@
         status.textContent = message;
         document.getElementById('plannerSaveRetry').hidden = kind !== 'error';
     }
+
+
+    // MSP INTEGRATED ADVISOR BRIDGE: BEGIN
+    // Never store a reviewed student's plan in the advisor's browser storage.
+    let mspOriginalPlanner = null;
+    let mspOriginalTranscript = null;
+    let mspOriginalReadOnly = false;
+    let mspOriginalWarning = '';
+    window.MSPPlannerBridge = {
+        ready: () => plannerReady && !tutorialDemoMode && !plannerStateReadOnly && !mspOriginalPlanner,
+        period: () => currentPeriod,
+        planKey: () => act,
+        isReviewing: () => mspOriginalPlanner !== null,
+        snapshot() {
+            if (!this.ready()) throw new Error('Your own planner is not ready for submission.');
+            const snapshot = plannerSnapshot();
+            // Include any edits to the currently visible period before saving/debouncing.
+            snapshot.plans[currentPeriod] = {};
+            for (const key of ['A','B','C']) snapshot.plans[currentPeriod][key] = planForStorage(PLANS[key]);
+            return snapshot;
+        },
+        lockInputs() {
+            if (!this.isReviewing()) return;
+            document.querySelectorAll('#planview input, #planview select, #planview textarea, #planview button, #loadcard input, #loadcard select, #loadcard button').forEach(el => {
+                el.disabled = true;
+            });
+            document.getElementById('plannerImport')?.setAttribute('disabled','');
+        },
+        async showReview(rows) {
+            if (!Array.isArray(rows) || !rows.length) throw new Error('No plans were submitted by this student.');
+            if (!plannerReady || tutorialDemoMode) throw new Error('The planner is still loading.');
+            if (!mspOriginalPlanner) {
+                mspOriginalPlanner = JSON.parse(JSON.stringify(plannerSnapshot()));
+                mspOriginalTranscript = APP.transcript;
+                mspOriginalReadOnly = plannerStateReadOnly;
+                mspOriginalWarning = plannerStorageWarning;
+            }
+            clearTimeout(plannerSaveTimer);
+            // Clear all four periods, then overlay the latest submission in each plan slot.
+            for (const period of ['P1','P2','P4','P5']) {
+                ALL_PLANS[period] = {A:emptyPlan(),B:emptyPlan(),C:emptyPlan()};
+            }
+            const chronological = [...rows].sort((a,b) => new Date(a.submitted_at) - new Date(b.submitted_at));
+            for (const row of chronological) {
+                if (!ALL_PLANS[row.period] || !['A','B','C'].includes(row.plan_key)) continue;
+                ALL_PLANS[row.period][row.plan_key] = normalizePlan(row.plan_data);
+            }
+            const latest = chronological[chronological.length - 1];
+            // The advisor's own transcript must not influence the student's plan display.
+            APP.transcript = null;
+            plannerStateReadOnly = true;
+            plannerStorageWarning = 'Read-only advisor review: your own local planner is safe.';
+            document.body.classList.add('msp-advisor-review');
+            PLANS = ALL_PLANS[currentPeriod];
+            switchView('planner');
+            await switchPeriod(latest.period);
+            switchPlan(latest.plan_key);
+            this.lockInputs();
+            setPlannerSaveStatus('blocked', plannerStorageWarning);
+        },
+        async exitReview() {
+            if (!mspOriginalPlanner) return;
+            clearTimeout(plannerSaveTimer);
+            const original = mspOriginalPlanner;
+            // Point PLANS to the restored object BEFORE switchPeriod() can persist it.
+            for (const period of ['P1','P2','P4','P5']) {
+                ALL_PLANS[period] = original.plans[period];
+            }
+            PLANS = ALL_PLANS[currentPeriod];
+            APP.transcript = mspOriginalTranscript;
+            plannerStateReadOnly = mspOriginalReadOnly;
+            plannerStorageWarning = mspOriginalWarning;
+            mspOriginalPlanner = null;
+            mspOriginalTranscript = null;
+            document.body.classList.remove('msp-advisor-review');
+            await switchPeriod(original.currentPeriod);
+            switchPlan(original.activePlan);
+            document.querySelectorAll('#planview input, #planview select, #planview textarea, #planview button, #loadcard input, #loadcard select, #loadcard button').forEach(el => el.disabled = false);
+            // Re-render the active plan so legitimate disabled constraints are reinstated.
+            switchPlan(original.activePlan);
+            switchView('planner');
+        }
+    };
+    // MSP INTEGRATED ADVISOR BRIDGE: END
 
     function plannerSnapshot() {
         return {
@@ -6680,6 +6828,7 @@
         }, 150);
     }
 
+
     function planForStorage(plan) {
         return {
             customLoad: plan.customLoad,
@@ -6691,6 +6840,7 @@
             bundle: plan.bundle
         };
     }
+
 
     function plansForStorage() {
         const result = {};
@@ -6775,9 +6925,11 @@
         }
     }
 
+
     function setPlannerBackupStatus(message) {
         document.getElementById('plannerBackupStatus').textContent = message;
     }
+
 
     function exportPlannerBackup() {
         if (!plannerReady) return;
@@ -6797,6 +6949,7 @@
             setPlannerBackupStatus('Couldn’t export the backup. Please try again.');
         }
     }
+
 
     function validatePlannerBackup(value) {
         const object = v => v !== null && typeof v === 'object' && !Array.isArray(v);
@@ -6844,6 +6997,7 @@
         }
         return { schemaVersion: value.schemaVersion, currentPeriod: value.currentPeriod, activePlan: value.activePlan, plans };
     }
+
 
     async function importPlannerBackup(input) {
         const file = input.files?.[0];
@@ -6898,6 +7052,7 @@
             .filter(Boolean);
     }
 
+
     function selectedSkills() {
         const p = PLANS[act];
         return p.skills
@@ -6905,6 +7060,7 @@
             .map(code => labs.find(l => l.Code === code))
             .filter(Boolean);
     }
+
 
     function selectedCoursesForPlan(k) {
         const p = PLANS[k];
@@ -6921,6 +7077,7 @@
             .filter(Boolean);
     }
 
+
     function selectedSkillsForPlan(k) {
         const p = PLANS[k];
         return p.skills
@@ -6928,6 +7085,7 @@
             .map(code => labs.find(l => l.Code === code))
             .filter(Boolean);
     }
+
 
     function toggleCustomLoad() {
         const toggle = document.getElementById('customLoadToggle');
@@ -6995,6 +7153,7 @@
         schedulePlannerStateSave();
     }
 
+
     function syncCustomLoadToggle() {
         const toggle = document.getElementById('customLoadToggle');
         const controls = document.getElementById('customLoadControls');
@@ -7059,6 +7218,7 @@
         }
     };
 
+
     function emptyPlan() {
         return {
             customLoad: false,
@@ -7071,6 +7231,7 @@
             bundle: ''
         };
     }
+
 
     function reconcilePlanWithCurrentData(plan) {
         const validCourses = new Set(courses.map(c => c.Code));
@@ -7097,6 +7258,7 @@
 
         return plan;
     }
+
 
     function normalizePlan(p) {
         if (!p || typeof p !== 'object' || Array.isArray(p)) {
@@ -7158,13 +7320,16 @@
         return result;
     }
 
+
     function getStudentGPA(){
         return APP.transcript?.computed?.currentCumGPA ?? null;
     }
 
+
     function getLoadRule(courseCount, skillCount) {
         return COURSE_LOAD_RULES?.[courseCount]?.[skillCount] || { allowed: false };
     }
+
 
     function isLoadSelectable(courseCount, skillCount) {
         const rule = getLoadRule(courseCount, skillCount);
@@ -7173,6 +7338,7 @@
         const gpa = getStudentGPA();
         return !(rule.minGpa && gpa !== null && gpa < rule.minGpa);
     }
+
 
     function getLoadGpaWarning(courseCount, skillCount) {
         const rule = getLoadRule(Number(courseCount), Number(skillCount));
@@ -7199,6 +7365,7 @@
         return null;
     }
 
+
     function loadOptionLabel(courseCount, skillCount) {
         const rule = getLoadRule(courseCount, skillCount);
 
@@ -7211,17 +7378,20 @@
         return 'Allowed';
     }
 
+
     function validSkillCountsForCourses(courseCount) {
         return Object.keys(COURSE_LOAD_RULES[courseCount] || {})
             .map(Number)
             .filter(skillCount => getLoadRule(courseCount, skillCount).allowed);
     }
 
+
     function validCourseCountsForSkills(skillCount) {
         return Object.keys(COURSE_LOAD_RULES)
             .map(Number)
             .filter(courseCount => getLoadRule(courseCount, skillCount).allowed);
     }
+
 
     function buildLoadDropdowns() {
         const p = PLANS[act];
@@ -7271,6 +7441,7 @@
         updateLoadNote();
     }
 
+
     function changeLoadFromCourses() {
         save();
 
@@ -7288,6 +7459,7 @@
 
         schedulePlannerStateSave();
     }
+
 
     function changeLoadFromSkills() {
         save();
@@ -7307,6 +7479,7 @@
         schedulePlannerStateSave();
     }
 
+
     function trimPlanSelections() {
         const p = PLANS[act];
 
@@ -7322,6 +7495,7 @@
             p.skills[i] = '';
         }
     }
+
 
     function updateLoadNote() {
         const p = PLANS[act];
@@ -7429,6 +7603,7 @@
         }));
     }
 
+
     function cleanPersonName(value) {
         return String(value || '')
             .normalize('NFC')
@@ -7439,12 +7614,14 @@
             .trim();
     }
 
+
     function parseEUDecimal(value) {
         if (value === null || value === undefined || value === '') return null;
 
         const n = parseFloat(String(value).replace(',', '.'));
         return Number.isFinite(n) ? n : null;
     }
+
 
     function parseGrade(value) {
         if (!value) return null;
@@ -7457,15 +7634,18 @@
         return Number.isFinite(n) ? n : null;
     }
 
+
     function isCourseCode(value) {
         return /^[A-Z]{2,4}\d{4}$/.test(String(value).trim());
     }
+
 
     function isDataToken(value) {
         const clean = String(value).trim().toUpperCase();
 
         return (/^\d+(?:[.,]\d+)?$/.test(clean) || clean === 'NG' || clean === 'NVD' || clean === 'FAIL');
     }
+
 
     function getModuleType(code) {
         const prefix = code.replace(/\d+/, '');
@@ -7559,6 +7739,7 @@
         if (printMatch) result.student.printDate = printMatch[1].trim().split('/')[0].trim();
     }
 
+
     function parseSemesterStats(semester, text) {
         const gpaMatch = text.match(/Sem\s*GPA\s+(\d+[.,]\d+)/i);
         if (gpaMatch) semester.semGPA = parseEUDecimal(gpaMatch[1]);
@@ -7572,6 +7753,7 @@
             semester.cumLetter = cumMatch[2]?.toUpperCase() || '';
         }
     }
+
 
     function parseModuleRow(row){
         const items = row.items.sort((a,b) => a.x - b.x);
@@ -7634,6 +7816,7 @@
         };
     }
 
+
     function resetTranscriptUploadZone() {
         const uz = document.getElementById('dropZone');
         if (!uz) return;
@@ -7655,6 +7838,7 @@
         const btn = uz.querySelector('button');
         if (btn) btn.innerHTML = '&#128193; Choose PDF';
     }
+
 
     function formatGradeForDisplay(value, decimals = 1) {
         if (
@@ -7687,6 +7871,7 @@
         }
     }
 
+
     function saveManualModules(studentNumber, mods) {
         if (!studentNumber) return;
         try {
@@ -7694,6 +7879,7 @@
         } catch (_) {
         }
     }
+
 
     function addManualModule(input) {
         const t = APP.transcript;
@@ -7723,6 +7909,7 @@
         buildDashboard();
     }
 
+
     function removeManualModule(code) {
         const t = APP.transcript;
         if (!t || !t.manualModules) return;
@@ -7732,6 +7919,7 @@
         computeAggregates(t);
         buildDashboard();
     }
+
 
     function toggleManualForm(force) {
         const f = document.getElementById('manualForm');
@@ -7743,6 +7931,7 @@
             if (t) t.focus();
         }
     }
+
 
     function submitManualModule() {
         const title = document.getElementById('man-title').value;
@@ -7770,6 +7959,7 @@
         toggleManualForm(false);
     }
 
+
     function dismissAbroadPrompt() {
         const t = APP.transcript;
         if (!t) return;
@@ -7782,6 +7972,7 @@
         }
         buildDashboard();
     }
+
 
     function computeAggregates(data) {
         const allModules = [
@@ -7907,6 +8098,7 @@
         };
     }
 
+
     function formatGrade(grade) {
         if (typeof grade === 'number') return grade.toFixed(1);
         if (typeof grade === 'string') return grade;
@@ -7950,6 +8142,7 @@
             open
         );
     }
+
 
     function hasCompletedTutorial() {
         try {
@@ -8335,6 +8528,7 @@
 
         buildDashboard();
     }
+
 
     async function restoreTutorialDemoSession() {
         const snapshot =
@@ -9023,6 +9217,7 @@
         arrow: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>'
     };
 
+
     function buildProgSection(title, summary, pct, met, body, startOpen, iconKey) {
         pct = Math.min(pct, 100);
         const barClass = met ? 'bar-ok' : pct > 60 ? 'bar-default' : 'bar-warn';
@@ -9041,6 +9236,7 @@
     <div class="prog-body" style="padding-top:12px">${body}</div>
   </div>`;
     }
+
 
     function buildGPAChart(t) {
         const sems = t.semesters.filter(s => s.cumGPA > 0);
@@ -9139,15 +9335,18 @@
   </div>`;
     }
 
+
     function toggleStatCard(el) {
         const wasOpen = el.classList.contains('sc-open');
         document.querySelectorAll('.stat-card.sc-open').forEach(c => c.classList.remove('sc-open'));
         if (!wasOpen) el.classList.add('sc-open');
     }
 
+
     function closeStatCard(closeBtn) {
         closeBtn.closest('.stat-card').classList.remove('sc-open');
     }
+
 
     function clearTranscript() {
         APP.transcript = null;
@@ -9228,15 +9427,18 @@
         });
     }
 
+
     function toggleSidebar() {
         document.getElementById('sidebar').classList.toggle('open');
         document.getElementById('sbOverlay').classList.toggle('show');
     }
 
+
     function closeSidebar() {
         document.getElementById('sidebar').classList.remove('open');
         document.getElementById('sbOverlay').classList.remove('show');
     }
+
 
     function showScreen(s) {
         document.getElementById('loading').style.display = s === 'ld' ? 'flex' : 'none';
@@ -9244,7 +9446,7 @@
         if (s === 'pl') {
             document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
             const target = window.location.hash.replace('#', '') || 'dashboard';
-            switchView(['dashboard', 'planner', 'catalogue', 'info'].includes(target) ? target : 'dashboard');
+            switchView(['dashboard', 'planner', 'catalogue', 'info', 'students', 'submissions'].includes(target) ? target : 'dashboard');
         }
     }
 
@@ -9290,6 +9492,7 @@
         return 'P1';
     }
 
+
     async function switchPeriod(p) {
         if (!DATA_PATHS.periods[p]) return;
 
@@ -9327,6 +9530,11 @@
             load(csv);
 
             syncCustomLoadToggle();
+
+            // Default to Compare when switching periods during advisor review.
+            if (mspOriginalPlanner !== null && !cmpMode) {
+                toggleCmp();
+            }
         } catch (err) {
             renderScheduleFreshness({ source: 'unavailable' });
             console.error(`Could not load period ${p}:`, err);
@@ -9341,6 +9549,7 @@
             b.classList.toggle("current", b.getAttribute("data-p") === today);
         });
     }
+
 
     function load(text) {
         courses = [];
@@ -9416,6 +9625,7 @@
         showScreen('pl');
         renderScheduleFreshness();
         plannerReady = true;
+        window.MSPAdvisorIntegrated?.refreshSend();
         document.getElementById('plannerExport').disabled = false;
         document.getElementById('plannerImport').disabled = plannerStateReadOnly;
         savePlannerState();
@@ -9476,6 +9686,7 @@
         schedulePlannerStateSave();
     }
 
+
     function save() {
         const p = PLANS[act];
         if (p.bundle) return;
@@ -9519,6 +9730,7 @@
         return clean.charAt(0) + clean.slice(1).toLowerCase();
     }
 
+
     function sharedScheduleBlocks(a, b) {
         const aDays = new Set((a?.Days || []).map(normBlock));
         const bDays = new Set((b?.Days || []).map(normBlock));
@@ -9526,10 +9738,12 @@
         return [...aDays].filter(day => bDays.has(day));
     }
 
+
     function moduleDisplayName(item) {
         if (!item) return 'Unknown module';
         return `${item.Code} — ${item.Title}`;
     }
+
 
     function handleExternalInputKey(event, index) {
         const fieldOrder = [
@@ -9584,6 +9798,7 @@
         return buildExternalCourseObjectForPlan(act, index);
     }
 
+
     function buildExternalCourseObjectForPlan(planKey, index) {
         const p = PLANS[planKey];
         const ext = p.externalCourses?.[index];
@@ -9603,6 +9818,7 @@
             External: true
         };
     }
+
 
     function renderExternalCourseForm(index, rerender = false) {
         const p = PLANS[act];
@@ -9786,6 +10002,7 @@
         }
     }
 
+
     function saveExternalCourseOnly(index) {
         const p = PLANS[act];
 
@@ -9809,6 +10026,7 @@
         schedulePlannerStateSave();
     }
 
+
     function renderOtherExternalCourseForms(currentIndex) {
         const p = PLANS[act];
 
@@ -9820,6 +10038,7 @@
             }
         }
     }
+
 
     function refreshExternalCourse(index, rerender = false) {
         rebuildSkills();
@@ -9835,6 +10054,7 @@
             renderExternalCourseForm(index);
         }
     }
+
 
     function saveExternalCourse(index, rerender = false) {
         saveExternalCourseOnly(index);
@@ -9852,9 +10072,11 @@
         return g;
     }
 
+
     function activeBundleItems() {
         return bundleItemsForPlan(act);
     }
+
 
     function buildBundleCard() {
         const card = document.getElementById('bundlecard');
@@ -9914,10 +10136,12 @@
         card.classList.toggle('collapsed', !active);
     }
 
+
     function toggleBundleCollapse() {
         const card = document.getElementById('bundlecard');
         if (card) card.classList.toggle('collapsed');
     }
+
 
     function toggleBundle(bid, on) {
         const p = PLANS[act];
@@ -9935,6 +10159,7 @@
         schedulePlannerStateSave();
     }
 
+
     function applyBundleMode() {
         const on = !!PLANS[act].bundle;
 
@@ -9948,6 +10173,7 @@
             });
         });
     }
+
 
     function renderCourseFields() {
         const count = PLANS[act].courseCount;
@@ -9985,6 +10211,7 @@
         body.innerHTML = html;
     }
 
+
     function renderSkillFields() {
         const p = PLANS[act];
         const body = document.querySelector('#labcard .card-b');
@@ -10018,6 +10245,7 @@
 
         body.innerHTML = html;
     }
+
 
     function buildCourseSelect(index) {
         const s = document.getElementById(`c${index + 1}`);
@@ -10070,6 +10298,7 @@
         }
     }
 
+
     function groupBySlot(arr) {
         const g = {};
         arr.forEach(c => {
@@ -10118,6 +10347,7 @@
             s.appendChild(og);
         });
     }
+
 
     function checkPrereqsMet(prereqStr, passedCodes) {
         // Format: CODE1+CODE2 (AND), CODE1/CODE2 (OR)
@@ -10206,6 +10436,7 @@
         };
     }
 
+
     function getLabDayOptions(skill, usedCourseBlocks) {
         if (!skill || !Array.isArray(skill.Days)) return [];
 
@@ -10228,6 +10459,7 @@
             }))
             .filter(option => !option.blocks.some(block => usedCourseBlocks.has(block)));
     }
+
 
     function solveLabSchedule(skillArr, courseArr) {
         const usedCourseBlocks = new Set(
@@ -10303,6 +10535,7 @@
         };
     }
 
+
     function findLabOverlapConflicts(labsToSchedule, usedCourseBlocks) {
         const conflicts = [];
 
@@ -10337,9 +10570,11 @@
         return conflicts;
     }
 
+
     function gridKey(block) {
         return normBlock(block);
     }
+
 
     function labSchedulePanelNote(skill) {
         const p = PLANS[act];
@@ -10441,6 +10676,7 @@
             ? `<div class="ph" style="display:block">${notes.join('<br>')}</div>`
             : '';
     }
+
 
     function buildSkillSelect(index) {
         const s = document.getElementById(`lab${index + 1}`);
@@ -10567,9 +10803,11 @@
         return d.replace('AM', ' AM').replace('PM', ' PM');
     }
 
+
     function esc(s) {
         return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
     }
+
 
     function buildPanelPrereqStatus(item) {
         if (
@@ -10771,6 +11009,7 @@
         return html;
     }
 
+
     function showPanel(item, id, isLab) {
         const el = document.getElementById(id);
         if (!item) {
@@ -10849,6 +11088,7 @@
             `<div style="font-size:12px;color:#78350F;margin-bottom:10px">Runs off-grid for the full period \u2014 not scheduled on the weekly Mon\u2013Fri timetable.</div>` +
             `<div>${codes}</div></div>`;
     }
+
 
     function buildTTHTML(courseArr, skillArr, compact) {
         const grid = {};
@@ -10975,6 +11215,7 @@
         return {cls: 'tok', txt: 'Ready'};
     }
 
+
     function updateTabIcons() {
         ['A', 'B', 'C'].forEach(k => {
             const t = document.getElementById('tab-' + k), ts = document.getElementById('ts-' + k);
@@ -10993,6 +11234,7 @@
         });
     }
 
+
     function normBlock(block) {
         return String(block || '')
             .trim()
@@ -11000,9 +11242,11 @@
             .replace(/\s+/g, '');
     }
 
+
     function blockDay(block) {
         return normBlock(block).replace(/AM$|PM$/, '');
     }
+
 
     function formatScheduleBlock(block) {
         const clean = normBlock(block);
@@ -11020,9 +11264,11 @@
         return `${dayLabel} ${time}`;
     }
 
+
     function isPracticalItem(item) {
         return /^PRA/.test(item?.Code || '') && !item.External;
     }
+
 
     function findScheduleOverlaps(items) {
         const conflicts = [];
@@ -11046,6 +11292,7 @@
 
         return conflicts;
     }
+
 
     function checkPrereqs() {
         const p = PLANS[act];
@@ -11659,11 +11906,13 @@
         updateTabIcons();
     }
 
+
     function acknowledgeCheck(code, v) {
         PLANS[act].ack[code] = v;
         checkPrereqs();
         buildSummary();
     }
+
 
     function formatPrereqs(s) {
         return s.split('+').map(pt => {
@@ -11788,6 +12037,7 @@
         btn.disabled = false;
     }
 
+
     function getPrerequisiteDisplayStatus(item) {
         if (
             !item?.Prerequisite ||
@@ -11854,6 +12104,7 @@
                     : 'Unconfirmed ⚠'
         };
     }
+
 
     function buildSummary() {
         const p = PLANS[act];
@@ -12292,11 +12543,13 @@
         }
     }
 
+
     function bundleItemsForPlan(k) {
         const bid = PLANS[k]?.bundle;
         if (!bid) return [];
         return bundledItems.filter(it => it.Bundle === bid);
     }
+
 
     function splitBundleItems(items) {
         return {
@@ -12304,6 +12557,7 @@
             skills: items.filter(it => /^PRA/.test(it.Code))
         };
     }
+
 
     function buildCmp() {
         const el = document.getElementById('cmpview');
@@ -12550,6 +12804,7 @@
         }
     };
 
+
     function parseMD(text) {
         descriptions = {};
         const blocks = text.split(/^---$/m).map(b => b.trim()).filter(b => b && !b.startsWith('#') && !b.startsWith('Source:'));
@@ -12609,6 +12864,7 @@
             descriptions[code] = desc;
         });
     }
+
 
     function buildFullCatalogueIndex() {
         const byCode = new Map();
@@ -12690,6 +12946,7 @@
         }
     }
 
+
     function buildPeriodChips() {
         const el = document.getElementById('periodChips');
 
@@ -12709,6 +12966,7 @@
         >${label}</button>
     `).join('');
     }
+
 
     function setCataloguePeriod(period) {
         catPeriod = period;
@@ -12763,6 +13021,7 @@
         }).join('');
     }
 
+
     function setCatalogueSubject(subject) {
         // Practicals cannot be combined with an individual subject.
         if (catFilter === 'PRA' && subject !== 'all') return;
@@ -12774,6 +13033,7 @@
         applyCatFilters();
     }
 
+
     function setCatFilter(f) {
         // An individual subject cannot be combined with Practicals.
         if (f === 'PRA' && catSubject !== 'all') return;
@@ -12784,6 +13044,7 @@
         buildSubjectChips();
         applyCatFilters();
     }
+
 
     function buildFilterChips() {
         const el = document.getElementById('filterChips');
@@ -12821,6 +13082,7 @@
     `;
         }).join('');
     }
+
 
     function applyCatFilters() {
         const query = document.getElementById('searchInput').value.toLowerCase().trim();
@@ -13119,6 +13381,7 @@
         document.getElementById('resultCount').textContent = `Showing ${total} course${total !== 1 ? 's' : ''}`;
     }
 
+
     function toggleCard(code, event) {
         if (event && (event.target.closest('.detail-close') || event.target.closest('.star-btn'))) return;
         const el = document.getElementById('card-' + code);
@@ -13130,6 +13393,7 @@
             setTimeout(() => el.scrollIntoView({behavior: 'smooth', block: 'nearest'}), 50);
         }
     }
+
 
     function closeCard(code) {
         const el = document.getElementById('card-' + code);
@@ -13173,6 +13437,7 @@
         }
     }
 
+
     function removeStar(code) {
         starredCourses.delete(code);
         saveStarred();
@@ -13192,6 +13457,7 @@
             applyCatFilters();
         }
     }
+
 
     function buildStarredPanel() {
         const el = document.getElementById('starredPanel');
@@ -13311,6 +13577,7 @@
             showPanel(skill, `pil${i + 1}`, true);
         }
     }
+
 
     function resetPlan() {
         PLANS[act] = emptyPlan();
@@ -13533,6 +13800,7 @@
         return items;
     }
 
+
     async function loadCrossPeriodData() {
         await Promise.all(
             PERIOD_ORDER.map(async period => {
@@ -13581,6 +13849,7 @@
                             info.source === 'unavailable' ? 'No usable schedule could be loaded. Reload or import a CSV.' : 'This schedule’s source could not be identified.';
     }
 
+
     async function fetchSourceText(url) {
         const controller = new AbortController();
         const timer = setTimeout(() => controller.abort(), 8000);
@@ -13592,6 +13861,7 @@
             clearTimeout(timer);
         }
     }
+
 
     async function fetchTextWithFallback(paths, cacheKey) {
         const sources = Array.isArray(paths) ? paths : [paths];
@@ -13670,6 +13940,7 @@
         }
     }
 
+
     async function cacheRemoteImages(selector, remoteUrl, localUrl, cacheKey) {
         const imgs = document.querySelectorAll(selector);
         if (!imgs.length) return;
@@ -13699,6 +13970,7 @@
         }
     }
 
+
     function blobToDataUrl(blob) {
         return new Promise((resolve, reject) => {
             const reader = new FileReader();
@@ -13708,14 +13980,17 @@
         });
     }
 
+
     async function loadText(paths, cacheKey) {
         return fetchTextWithFallback(paths, cacheKey);
     }
+
 
     async function loadJson(paths, cacheKey) {
         const text = await fetchTextWithFallback(paths, cacheKey);
         return JSON.parse(text);
     }
+
 
     async function loadDataFiles() {
         const [
@@ -13808,7 +14083,7 @@
             applyCatFilters();
 
             const initialHash = window.location.hash.replace('#', '');
-            if (['dashboard', 'planner', 'catalogue', 'info'].includes(initialHash)) {
+            if (['dashboard', 'planner', 'catalogue', 'info', 'students', 'submissions'].includes(initialHash)) {
                 switchView(initialHash);
             }
             setTimeout(() => {
@@ -13844,7 +14119,10 @@
     // Hash routing
     window.addEventListener('hashchange', () => {
         const h = window.location.hash.replace('#', '');
-        if (['dashboard', 'planner', 'catalogue', 'info'].includes(h) && h !== activeView) switchView(h);
+        if (['dashboard', 'planner', 'catalogue', 'info', 'students', 'submissions'].includes(h) && h !== activeView) switchView(h);
     });
 </script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="advisor/config.js"></script>
+<script src="advisor/integrated.js"></script>
 </html>

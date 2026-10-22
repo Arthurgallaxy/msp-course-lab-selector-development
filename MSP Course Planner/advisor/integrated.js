@@ -12,6 +12,13 @@
   const dateText = v => v ? new Date(v).toLocaleString(undefined, { dateStyle:'medium',timeStyle:'short' }) : '';
   const checked = result => { if(result.error) throw result.error; return result.data; };
   let db = null;
+  let adminEnabled = false;
+  let adminData = null;
+  let adminBusy = false;
+  let adminTab = 'reports';
+  let adminStatusFilter = 'all';
+  let adminQuery = '';
+  let adminRequestFilter = 'pending';
   let user = null;
   let state = null;
   let reviewing = null;
@@ -72,6 +79,7 @@
   const report = err => notice(err?.message || String(err), true);
   const elVal = id => $(id)?.value?.trim() || '';
   const isAdvisor = () => !!state?.advisor?.active;
+  const isAdmin = () => adminEnabled;
   // Student-domain UM addresses can never request advisor access from the UI.
   // Keep test addresses usable until institutionally verified staff login exists.
   // Set restrictAdvisorRequestsToStaffEmail: true in config.js to apply the
@@ -309,7 +317,13 @@
     if (!$('mspAccountDialog')?.open) $('mspAccountDialog')?.showModal();
     drawAccount();
   }
-  window.MSPAdvisorIntegrated = {openAccount, updateReviewBanner, refresh: loadState, refreshSend() {drawSend();drawQuickSend();}};
+  window.MSPAdvisorIntegrated = {
+    openAccount, updateReviewBanner, refresh:loadState,
+    refreshSend() {drawSend();drawQuickSend();},
+    isAdmin,
+    openAdmin() { if (adminEnabled) { window.switchView('admin'); void refreshAdmin(); } },
+    submitFeedback: submitPublicFeedback
+  };
 
   function drawAccount() {
     const node = $('mspAccountBody');
@@ -601,23 +615,147 @@
     syncReviewCompare();
   }
 
+  // Feedback form remains available to signed-out visitors. The server validates
+  // Turnstile and applies rate limits; never expose the service role in the browser.
+  async function submitPublicFeedback(payload) {
+    if (!cfg.supabaseUrl || !cfg.supabaseAnonKey) throw Error('Feedback service is not configured.');
+    let token = null;
+    if (db) {
+      const session = await db.auth.getSession();
+      if (!session.error) token = session.data.session?.access_token || null;
+    }
+    const response = await fetch(`${cfg.supabaseUrl.replace(/\/$/,'')}/functions/v1/submit-feedback`, {
+      method:'POST',
+      headers: {'Content-Type':'application/json','apikey':cfg.supabaseAnonKey,...(token?{Authorization:`Bearer ${token}`}:{})},
+      body:JSON.stringify(payload)
+    });
+    const result = await response.json().catch(()=>({}));
+    if (!response.ok || !result.ok) throw Error(result.error || 'Could not send your report. Try again.');
+  }
+
+  function adminStatus(status) {
+    const names = {new:'New',in_progress:'In progress',resolved:'Resolved',closed:'Closed',
+      pending:'Pending',approved:'Approved',rejected:'Denied'};
+    return names[status] || status;
+  }
+  function adminBadge(status) {
+    const cls = {new:'pending',in_progress:'pending',resolved:'reviewed',closed:'',
+      pending:'pending',approved:'reviewed',rejected:'changes'}[status] || '';
+    return `<span class="msp-status ${cls?'msp-status-'+cls:''}">${escapeHTML(adminStatus(status))}</span>`;
+  }
+  function renderAdmin() {
+    const root = $('mspAdminBody');
+    if (!root) return;
+    if (!adminEnabled) { root.innerHTML='<p class="msp-caption">Administrator access is required.</p>'; return; }
+    const data = adminData;
+    const reports = data?.reports || [], requests = data?.requests || [], advisors = data?.advisors || [];
+    const count = (s) => reports.filter(r=>r.status===s).length;
+    root.innerHTML = `<div class="msp-admin-top">
+      <p class="msp-caption">Manage planner feedback and verified study advisor access. Changes are saved to Supabase.</p>
+      <button class="btn btn-gh msp-refresh-btn" type="button" data-msp-action="refreshAdmin" ${adminBusy?'disabled':''}>${adminBusy?'Refreshing…':'↻ Refresh'}</button></div>
+      <div class="msp-student-stats"><div><b>${count('new')}</b><span>New reports</span></div>
+      <div><b>${requests.filter(r=>r.status==='pending').length}</b><span>Advisor requests</span></div>
+      <div><b>${advisors.filter(a=>a.active).length}</b><span>Active advisors</span></div></div>
+      <div class="msp-admin-tabs" role="group" aria-label="Administration sections">
+        ${[['reports','Reports'],['requests','Advisor requests'],['advisors','All advisors']].map(([tab,label])=>
+          `<button type="button" class="btn ${adminTab===tab?'btn-navy':'btn-gh'}" data-msp-action="adminTab" data-tab="${tab}" aria-pressed="${adminTab===tab}">${label}</button>`).join('')}
+      </div><div id="mspAdminPanel">${!data?'<p class="msp-caption">Loading administration data…</p>':''}</div>`;
+    renderAdminPanel();
+  }
+  function renderAdminPanel() {
+    const panel=$('mspAdminPanel');
+    if (!panel || !adminData || !adminEnabled) return;
+    if (adminTab==='reports') {
+      const reports=adminData.reports||[];
+      const rows=reports.filter(r => (adminStatusFilter==='all'||r.status===adminStatusFilter) &&
+        `${r.title} ${r.message} ${r.email} ${r.report_type}`.toLowerCase().includes(adminQuery.toLowerCase()));
+      panel.innerHTML=`<div class="msp-admin-filters msp-students-toolbar">
+        <label>Search reports<input id="mspAdminSearch" type="search" placeholder="Title, issue, contact" value="${escapeHTML(adminQuery)}"></label>
+        <label>Status<select id="mspAdminStatusFilter">${[['all','All statuses'],['new','New'],['in_progress','In progress'],['resolved','Resolved'],['closed','Closed']].map(([v,l])=>`<option value="${v}" ${adminStatusFilter===v?'selected':''}>${l}</option>`).join('')}</select></label></div>
+        <p class="msp-caption">Showing ${rows.length} of ${reports.length} newest reports (maximum 250)</p>
+        <div class="msp-admin-list">${rows.map(r=>`<article class="msp-admin-item"><div class="msp-history-header"><div>
+          <b>${escapeHTML(r.title)}</b><span class="msp-caption">${escapeHTML(r.report_type)} · ${escapeHTML(dateText(r.created_at))}</span></div>${adminBadge(r.status)}</div>
+          <p class="msp-admin-message">${escapeHTML(r.message)}</p>
+          ${r.expected_behaviour?`<details><summary>Expected behavior</summary><p class="msp-admin-message">${escapeHTML(r.expected_behaviour)}</p></details>`:''}
+          ${r.email?`<p class="msp-caption">Contact: <a href="mailto:${encodeURIComponent(r.email).replace(/%40/g,'@')}">${escapeHTML(r.email)}</a></p>`:''}
+          ${r.diagnostics && Object.keys(r.diagnostics).length?`<details><summary>Technical information</summary><pre class="msp-admin-diagnostics">${escapeHTML(JSON.stringify(r.diagnostics,null,2))}</pre></details>`:''}
+          <div class="msp-admin-actions"><label>Review status
+          <select data-msp-admin-report="${escapeHTML(r.id)}" aria-label="Report status">${['new','in_progress','resolved','closed'].map(v=>`<option value="${v}" ${r.status===v?'selected':''}>${adminStatus(v)}</option>`).join('')}</select></label></div>
+          </article>`).join('')||'<p class="msp-caption">No reports match these filters.</p>'}</div>`;
+    } else if(adminTab==='requests') {
+      const requests=adminData.requests||[];
+      const rows=requests.filter(r=>adminRequestFilter==='all'||r.status===adminRequestFilter);
+      panel.innerHTML=`<div class="msp-admin-filters msp-students-toolbar"><label>Request status
+        <select id="mspAdminRequestFilter"><option value="pending" ${adminRequestFilter==='pending'?'selected':''}>Pending</option><option value="all" ${adminRequestFilter==='all'?'selected':''}>All requests</option><option value="approved" ${adminRequestFilter==='approved'?'selected':''}>Approved</option><option value="rejected" ${adminRequestFilter==='rejected'?'selected':''}>Denied</option></select></label></div>
+        <div class="msp-admin-list">${rows.map(r=>`<article class="msp-admin-item"><div class="msp-history-header"><div><b>${escapeHTML(r.display_name)}</b><span class="msp-caption">${escapeHTML(r.email||'No account email')} · ${escapeHTML(dateText(r.created_at))}</span></div>${adminBadge(r.status)}</div>
+        ${r.status==='pending'?`<p class="msp-caption">Verify the person's institutional identity and advisor eligibility before approval.</p><div class="msp-admin-actions">
+        <button type="button" class="btn btn-navy" data-msp-action="adminApproveAdvisor" data-user="${escapeHTML(r.user_id)}">Approve</button>
+        <button type="button" class="btn btn-gh" data-msp-action="adminRejectAdvisor" data-user="${escapeHTML(r.user_id)}">Deny</button></div>`:''}</article>`).join('')||'<p class="msp-caption">No advisor requests to show.</p>'}</div>`;
+    } else {
+      const advisors=adminData.advisors||[];
+      panel.innerHTML=`<p class="msp-caption">${advisors.length} approved advisor account${advisors.length===1?'':'s'} · inactive advisors cannot access student submissions.</p>
+      <div class="msp-admin-list">${advisors.map(a=>`<article class="msp-admin-item"><div class="msp-history-header"><div><b>${escapeHTML(a.display_name)}</b>
+      <span class="msp-caption">${escapeHTML(a.email||'No account email')} · ${Number(a.students)||0} assigned student(s)</span></div>${adminBadge(a.active?'approved':'closed')}</div>
+      <div class="msp-admin-actions"><button type="button" class="btn btn-gh" data-msp-action="adminToggleAdvisor" data-user="${escapeHTML(a.user_id)}" data-active="${a.active?'false':'true'}">${a.active?'Deactivate advisor':'Reactivate advisor'}</button></div></article>`).join('')||'<p class="msp-caption">No advisors have been approved yet.</p>'}</div>`;
+    }
+  }
+  async function refreshAdmin() {
+    if (!adminEnabled || !db || adminBusy) return;
+    adminBusy=true;renderAdmin();
+    try {
+      const result=checked(await db.rpc('msp_admin_dashboard'));
+      if (!adminEnabled || !user) return;
+      adminData=result;renderAdmin();
+    } catch(err) { report(err); } finally { adminBusy=false;renderAdmin(); }
+  }
+  async function adminAction(action,target) {
+    if (!adminEnabled) throw Error('Administrator access required.');
+    if (action==='adminTab') { adminTab=target.dataset.tab;renderAdmin();return; }
+    if (action==='refreshAdmin') {await refreshAdmin();return;}
+    if (action==='adminApproveAdvisor'||action==='adminRejectAdvisor') {
+      const uid=target.dataset.user;
+      const request=adminData?.requests?.find(r=>r.user_id===uid && r.status==='pending');
+      if (!request) throw Error('This request is no longer pending. Refresh the page.');
+      const decision=action==='adminApproveAdvisor'?'approved':'rejected';
+      const ask=decision==='approved'?`Approve ${request.display_name} (${request.email}) as an advisor? Confirm their institutional identity first.`:`Deny advisor access for ${request.display_name}?`;
+      if (!confirm(ask)) return;
+      checked(await db.rpc('msp_admin_review_request',{p_user_id:uid,p_decision:decision}));
+      notice(`Advisor request ${decision==='approved'?'approved':'denied'}.`);
+      await refreshAdmin();return;
+    }
+    if (action==='adminToggleAdvisor') {
+      const advisor=adminData?.advisors?.find(a=>a.user_id===target.dataset.user);
+      if (!advisor) throw Error('Advisor not found. Refresh the list.');
+      const makeActive=target.dataset.active==='true';
+      if (!confirm(`${makeActive?'Reactivate':'Deactivate'} ${advisor.display_name}? ${!makeActive?'They will lose access to students until reactivated.':''}`)) return;
+      checked(await db.rpc('msp_admin_set_advisor_active',{p_user_id:advisor.user_id,p_active:makeActive}));
+      notice(`Advisor ${makeActive?'reactivated':'deactivated'}.`);
+      await refreshAdmin();return;
+    }
+    throw Error('Unknown administration action.');
+  }
+
   async function loadState() {
     const n=++refreshSerial;
     ++studentRefreshSerial;
     ++advisorRefreshSerial;
     advisorRefreshing = false;
-    if (!db || !user) { state=null; render(); return; }
+    if (!db || !user) { state=null;adminEnabled=false;adminData=null;render();return; }
     const uid=user.id;
     try {
-      const list=await Promise.all([
+      const [adminResult,list]=await Promise.all([
+        db.rpc('msp_is_admin'),
+        Promise.all([
         db.from('profiles').select('id,display_name').eq('id',uid).maybeSingle(),
         db.from('advisors').select('user_id,display_name,active').eq('active',true).order('display_name'),
         db.from('advisor_assignments').select('student_id,advisor_id').eq('student_id',uid).maybeSingle(),
         db.from('advisor_requests').select('user_id,status,display_name').eq('user_id',uid).maybeSingle(),
         db.from('plan_submissions').select('id,period,plan_key,submitted_at,version_number').eq('student_id',uid).order('submitted_at',{ascending:false}),
         db.from('advisors').select('user_id,display_name,active').eq('user_id',uid).maybeSingle()
+        ])
       ]);
       list.forEach(checked);
+      if (adminResult.error) console.warn('Admin role check unavailable:',adminResult.error.message);
       const [profile,advisors,assignment,request,own,advisor]=list.map(x=>x.data);
       const assigned=advisor?.active ? checked(await db.from('plan_submissions').select('id,student_id,advisor_id,period,plan_key,plan_data,student_message,submitted_at').eq('advisor_id',uid).order('submitted_at',{ascending:false})) : [];
       const ids=[...new Set([...(own||[]),...assigned].map(x=>x.id))];
@@ -625,6 +763,8 @@
       const studentIds=[...new Set(assigned.map(x=>x.student_id))];
       const profiles=studentIds.length ? checked(await db.from('profiles').select('id,display_name').in('id',studentIds)) : [];
       if (n!==refreshSerial || uid!==user?.id) return;
+      adminEnabled = adminResult.error ? false : adminResult.data === true;
+      if (!adminEnabled) adminData=null;
       state={profile,advisors:advisors||[],assignment,request,own:own||[],advisor,assigned,reviews,profiles};
       if (advisor?.active) advisorLastUpdated = new Date();
       else submissionLastUpdated = new Date();
@@ -772,9 +912,12 @@
     if (studentsLink) studentsLink.hidden = !isAdvisor();
     const submissionsLink=$('mspSubmissionsLink');
     if (submissionsLink) submissionsLink.hidden = !user || !state || isAdvisor();
+    const adminLink=$('mspAdminLink');
+    if (adminLink) adminLink.hidden=!adminEnabled;
+    if (!adminEnabled && $('view-admin')?.classList.contains('active')) window.switchView('dashboard');
     const button=$('mspAccountLink');
     if (button) button.querySelector('.sb-hint').textContent = user ? user.email : 'Sign in';
-    drawAccount();drawSend();drawQuickSend();drawStudentFeedback();drawSubmissionHistory();drawStudents();updateReviewBanner();
+    drawAccount();drawSend();drawQuickSend();drawStudentFeedback();drawSubmissionHistory();drawStudents();updateReviewBanner();renderAdmin();
   }
   async function act(action, target) {
     if (busy && action === 'closeSnapshot') { closeSnapshot(); return; }
@@ -782,7 +925,7 @@
     busy=true;
     target.disabled=true;
     const oldLabel = target.innerHTML;
-    const progress = {deleteSubmission:'Deleting…',refreshSubmissions:'Refreshing…',submit:'Submitting…',requestAdvisor:'Sending request…',saveAdvisor:'Saving…',saveName:'Saving…',logout:'Signing out…',review:'Saving review…'}[action];
+    const progress = {adminApproveAdvisor:'Approving…',adminRejectAdvisor:'Denying…',adminToggleAdvisor:'Saving…',deleteSubmission:'Deleting…',refreshSubmissions:'Refreshing…',submit:'Submitting…',requestAdvisor:'Sending request…',saveAdvisor:'Saving…',saveName:'Saving…',logout:'Signing out…',review:'Saving review…'}[action];
     if (progress) target.textContent=progress;
     try {
       notice('');
@@ -790,10 +933,12 @@
       if (action==='logout') {
         closeSnapshot(); stopRealtime(); ++studentRefreshSerial; ++advisorRefreshSerial; reviewDrafts.clear();
         if (bridge?.isReviewing()) {await bridge.exitReview();reviewing=null;}
-        checked(await db.auth.signOut());user=null;state=null;closeAccount();render();notice('Signed out.');return;
+        checked(await db.auth.signOut());user=null;state=null;adminEnabled=false;adminData=null;closeAccount();render();notice('Signed out.');return;
       }
       if (!user) throw Error('Sign in first.');
-      if (action==='viewSubmission' || action==='compareSubmission') {
+      if (action.startsWith('admin')) {
+        await adminAction(action,target);
+      } else if (action==='viewSubmission' || action==='compareSubmission') {
         await openSnapshot(target.dataset.submission,action==='compareSubmission');
       } else if (action==='snapshotView' || action==='snapshotCompare') {
         if (!selectedSnapshot) throw Error('Open a submitted plan first.');
@@ -885,19 +1030,34 @@
     }
   }
   document.addEventListener('input', e => {
+    if (e.target.id === 'mspAdminSearch') { adminQuery=e.target.value; const pos=e.target.selectionStart; renderAdminPanel(); const next=$('mspAdminSearch'); if(next){next.focus();next.setSelectionRange(pos,pos);} }
     if (e.target.id === 'mspReviewComment' && reviewing) {
       const row = reviewRow(bridge.period(),reviewPlanKey);
       if (row) reviewDrafts.set(row.id,e.target.value);
     }
     if (e.target.id === 'mspStudentSearch') { studentSearch = e.target.value; filterStudents(); }
   });
-  document.addEventListener('change', e => {
+  document.addEventListener('change', async e => {
+    if (e.target.id === 'mspAdminStatusFilter') {adminStatusFilter=e.target.value;renderAdminPanel();}
+    if (e.target.id === 'mspAdminRequestFilter') {adminRequestFilter=e.target.value;renderAdminPanel();}
+    if (e.target.matches('[data-msp-admin-report]')) {
+      if (!adminEnabled || !adminData) return;
+      const id=e.target.dataset.mspAdminReport, status=e.target.value;
+      e.target.disabled=true;
+      try {
+        checked(await db.rpc('msp_admin_set_feedback_status',{p_report_id:id,p_status:status}));
+        const report=adminData.reports.find(r=>r.id===id);
+        if (report) report.status=status;
+        notice('Report status saved.');renderAdmin();
+      } catch(err) {report(err);await refreshAdmin();} finally {if(e.target.isConnected)e.target.disabled=false;}
+    }
     if (e.target.id === 'mspStudentFilter') { studentFilter = e.target.value; filterStudents(); }
     if (e.target.id === 'mspSubmissionPeriod') { submissionPeriodFilter = e.target.value; filterSubmissions(); }
     if (e.target.id === 'mspSubmissionReview') { submissionReviewFilter = e.target.value; filterSubmissions(); }
     if (e.target.id === 'mspSubmissionVersion') { submissionVersionFilter = e.target.value; filterSubmissions(); }
   });
   document.addEventListener('click', e => {
+    if (e.target.closest('#mspAdminLink') && adminEnabled) void refreshAdmin();
     const btn=e.target.closest('[data-msp-action]');
     if (!btn) return;
     e.preventDefault();act(btn.dataset.mspAction,btn);
@@ -975,7 +1135,8 @@
       });
     } catch(e){report(e);render();}
   }
-  window.addEventListener('pageshow',()=>{drawSend();drawQuickSend();});
+  window.addEventListener('pageshow',()=>{drawSend();drawQuickSend();if(adminEnabled && $('view-admin')?.classList.contains('active')) void refreshAdmin();});
+  window.addEventListener('hashchange',()=>{if (location.hash==='#admin' && adminEnabled && !adminData) void refreshAdmin();});
   // Returning to a suspended tab also checks student feedback when live events
   // were unavailable or the network connection was interrupted.
   document.addEventListener('visibilitychange', () => {

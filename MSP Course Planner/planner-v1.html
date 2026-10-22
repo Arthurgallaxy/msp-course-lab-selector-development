@@ -4323,6 +4323,11 @@
                 <span class="sb-ico" aria-hidden="true">&#128101;</span>
                 <span class="sb-text">My students <span class="sb-hint">Review submitted plans</span></span>
             </a>
+            <a class="sb-link" id="mspAdminLink" href="#admin" data-view="admin" hidden
+               onclick="switchView('admin');closeSidebar()">
+                <span class="sb-ico" aria-hidden="true">&#9881;</span>
+                <span class="sb-text">Administration <span class="sb-hint">Reports &amp; advisor approvals</span></span>
+            </a>
             <div class="sb-divider"></div>
             <a class="sb-link" href="#info" data-view="info" onclick="switchView('info');closeSidebar()">
                 <span class="sb-ico"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
@@ -4660,6 +4665,13 @@
                 <div class="card"><div class="card-h"><div class="step">&#128101;</div><h2>My students</h2></div>
                     <div class="card-b" id="mspStudentsBody"></div></div>
             </div>
+            <!-- MSP ADMIN DASHBOARD: visible only to verified Supabase admin accounts -->
+            <div id="view-admin" class="view">
+                <div class="card"><div class="card-h"><div class="step">&#9881;</div><h2>Administration</h2>
+                    <span class="hint">Feedback &amp; advisor access</span></div>
+                    <div class="card-b" id="mspAdminBody"><p class="msp-caption">Sign in with an admin account to manage reports.</p></div>
+                </div>
+            </div>
             <!-- ═══ VIEW: INFO ═══ -->
             <div id="view-info" class="view">
                 <div class="card">
@@ -4698,7 +4710,6 @@
     //THIS VERSION SHOULD BE CHANGED ON EVERY UPDATE (to the same as the version.json file) OR IT WILL CAUSE PERMANENT UPDATE POPUPS
     const APP_VERSION = '1.3.0';
     const updateurl = 'https://raw.githubusercontent.com/arthurgallaxy/msp-course-lab-selector-development/main/MSP%20Course%20Planner/version.json';
-    const FEEDBACK_ENDPOINT = 'https://formspree.io/f/maeyaoen';
 
     const UPDATE_POLICY = {
         low: {
@@ -5120,7 +5131,7 @@
             <div class="feedback-header">
                 <div>
                     <h2 id="feedbackTitle">Feedback &amp; Bug Reports</h2>
-                    <p>Send a report directly to the MSP Course Planner development team.</p>
+                    <p>Send a report to the MSP Course Planner administrators for review.</p>
                     <p><b> NEVER </b> include your transcript, student number, grades, or other sensitive personal information </p>
                     <p><small> *if the bug is related to sensitive information please submit an email address, and we will contact you privately </small></p>
                 </div>
@@ -5207,6 +5218,12 @@
                     </label>
                 </div>
 
+                <div class="feedback-field" id="feedbackTurnstileField">
+                    <label>Spam protection <span class="feedback-required">*</span></label>
+                    <div id="feedbackTurnstile" class="msp-turnstile-container" aria-label="Spam verification"></div>
+                    <div class="feedback-contact-note">Verification is required before sending a report.</div>
+                </div>
+
                 <div class="feedback-honeypot"
                      aria-hidden="true">
                     <label for="feedbackGotcha">Leave this field empty</label>
@@ -5247,6 +5264,7 @@
         document.body.appendChild(modal);
 
         updateFeedbackFormType();
+        mountFeedbackTurnstile();
 
         try {
             const rawDraft =
@@ -5319,7 +5337,52 @@
 
     function closeFeedbackModal() {
         const modal = document.getElementById('feedbackPrompt');
+        if (window.turnstile && feedbackTurnstileId !== null) {
+            try { window.turnstile.remove(feedbackTurnstileId); } catch (_) {}
+        }
+        feedbackTurnstileId = null;
+        feedbackTurnstileToken = '';
         if (modal) modal.remove();
+    }
+
+
+    let feedbackTurnstileToken = '';
+    let feedbackTurnstileId = null;
+    let feedbackTurnstileScript = null;
+
+    function mountFeedbackTurnstile() {
+        feedbackTurnstileToken = '';
+        const slot = document.getElementById('feedbackTurnstile');
+        const key = window.MSP_ADVISOR_CONFIG?.feedbackTurnstileSiteKey;
+        if (!slot) return;
+        if (!key) {
+            slot.textContent = 'Feedback verification is not configured yet. Contact the administrator.';
+            return;
+        }
+        const render = () => {
+            if (!window.turnstile || !slot.isConnected || feedbackTurnstileId !== null) return;
+            feedbackTurnstileId = window.turnstile.render(slot, {
+                sitekey: key,
+                action: 'msp_feedback',
+                theme: 'light',
+                size: 'flexible',
+                callback: token => { feedbackTurnstileToken = token; },
+                'expired-callback': () => { feedbackTurnstileToken = ''; },
+                'error-callback': () => { feedbackTurnstileToken = ''; }
+            });
+        };
+        if (window.turnstile) { render(); return; }
+        if (!feedbackTurnstileScript) {
+            feedbackTurnstileScript = document.createElement('script');
+            feedbackTurnstileScript.src = 'https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit';
+            feedbackTurnstileScript.async = true;
+            feedbackTurnstileScript.addEventListener('load', render);
+            feedbackTurnstileScript.addEventListener('error', () => {
+                if (slot.isConnected) slot.textContent = 'Could not load spam verification. Please try again later.';
+                feedbackTurnstileScript = null;
+            });
+            document.head.appendChild(feedbackTurnstileScript);
+        } else feedbackTurnstileScript.addEventListener('load', render, {once: true});
     }
 
 
@@ -5373,6 +5436,11 @@
             return;
         }
 
+        if (!feedbackTurnstileToken) {
+            showFeedbackStatus('Complete spam verification before submitting.', 'error');
+            return;
+        }
+
         if (!navigator.onLine) {
             showFeedbackStatus(
                 'You appear to be offline. Your report has not been sent. Reconnect and try again.',
@@ -5391,26 +5459,25 @@
             report_type: typeLabels[type] || 'General feedback',
             title,
             message: description,
-            expected_behaviour:
-                type === 'bug'
-                    ? expectedBehaviour
-                    : '',
+            expected_behaviour: type === 'bug' ? expectedBehaviour : '',
             email: contactEmail,
-            _gotcha: gotcha
+            gotcha,
+            turnstileToken: feedbackTurnstileToken,
+            diagnostics: {}
         };
 
         if (includeDiagnostics) {
-            payload.app_version = APP_VERSION;
-            payload.period = currentPeriod || 'Unknown';
-            payload.active_plan = act || 'Unknown';
-            payload.current_view = activeView || 'Unknown';
-            payload.browser_platform = navigator.userAgent;
-            payload.language = navigator.language || 'Unknown';
-            payload.screen =
-                `${window.screen.width}x${window.screen.height}`;
-            payload.online = navigator.onLine ? 'Yes' : 'No';
-            payload.reported_at =
-                new Date().toISOString();
+            payload.diagnostics = {
+                app_version: APP_VERSION,
+                period: currentPeriod || 'Unknown',
+                active_plan: act || 'Unknown',
+                current_view: activeView || 'Unknown',
+                browser_platform: navigator.userAgent,
+                language: navigator.language || 'Unknown',
+                screen: `${window.screen.width}x${window.screen.height}`,
+                online: navigator.onLine ? 'Yes' : 'No',
+                reported_at: new Date().toISOString()
+            };
         }
 
         submitButton.disabled = true;
@@ -5420,32 +5487,10 @@
         status.textContent = '';
 
         try {
-            const response = await fetch(FEEDBACK_ENDPOINT, {
-                method: 'POST',
-                headers: {
-                    'Accept': 'application/json',
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify(payload)
-            });
-
-            if (!response.ok) {
-                let errorMessage = 'Could not submit the report. Please try again.';
-
-                try {
-                    const data = await response.json();
-
-                    if (Array.isArray(data?.errors) && data.errors.length) {
-                        errorMessage =
-                            data.errors
-                                .map(error => error.message)
-                                .filter(Boolean)
-                                .join(' ');
-                    }
-                } catch (_) {}
-
-                throw new Error(errorMessage);
+            if (!window.MSPAdvisorIntegrated?.submitFeedback) {
+                throw new Error('The Supabase feedback service is unavailable. Refresh the page and try again.');
             }
+            await window.MSPAdvisorIntegrated.submitFeedback(payload);
 
             showFeedbackStatus(
                 'Report submitted successfully. Thank you for helping improve the planner.',
@@ -5461,6 +5506,10 @@
             }, 1600);
 
         } catch (err) {
+            if (window.turnstile && feedbackTurnstileId !== null) {
+                try { window.turnstile.reset(feedbackTurnstileId); } catch (_) {}
+            }
+            feedbackTurnstileToken = '';
             console.warn('Feedback submission failed:', err);
 
             showFeedbackStatus(
@@ -9379,6 +9428,7 @@
     // VIEW ROUTING
     // ═══════════════════════════════════════════════════
     function switchView(view) {
+        if (view === 'admin' && !window.MSPAdvisorIntegrated?.isAdmin?.()) view = 'dashboard';
         activeView = view;
         document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
         const el = document.getElementById('view-' + view);
@@ -9446,7 +9496,7 @@
         if (s === 'pl') {
             document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
             const target = window.location.hash.replace('#', '') || 'dashboard';
-            switchView(['dashboard', 'planner', 'catalogue', 'info', 'students', 'submissions'].includes(target) ? target : 'dashboard');
+            switchView(['dashboard', 'planner', 'catalogue', 'info', 'students', 'submissions', 'admin'].includes(target) ? target : 'dashboard');
         }
     }
 
@@ -14083,7 +14133,7 @@
             applyCatFilters();
 
             const initialHash = window.location.hash.replace('#', '');
-            if (['dashboard', 'planner', 'catalogue', 'info', 'students', 'submissions'].includes(initialHash)) {
+            if (['dashboard', 'planner', 'catalogue', 'info', 'students', 'submissions', 'admin'].includes(initialHash)) {
                 switchView(initialHash);
             }
             setTimeout(() => {
@@ -14119,7 +14169,7 @@
     // Hash routing
     window.addEventListener('hashchange', () => {
         const h = window.location.hash.replace('#', '');
-        if (['dashboard', 'planner', 'catalogue', 'info', 'students', 'submissions'].includes(h) && h !== activeView) switchView(h);
+        if (['dashboard', 'planner', 'catalogue', 'info', 'students', 'submissions', 'admin'].includes(h) && h !== activeView) switchView(h);
     });
 </script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>

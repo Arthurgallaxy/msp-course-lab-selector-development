@@ -269,3 +269,26 @@ body.msp-advisor-review #planview input, body.msp-advisor-review #planview selec
 .msp-feedback-foot a:hover { color:var(--navy2); }
 @media(max-width:700px) { .msp-submission-toolbar { grid-template-columns:minmax(0,1fr); } }
 @media(max-width:520px) { .msp-submissions-list .msp-history-entry { padding:12px; } .msp-history-actions .btn { flex:1 1 auto;justify-content:center; } .msp-history-actions .msp-history-delete { flex:1 1 100%; } }
+
+/* Admin console: native planner cards, action buttons, neutral/status colors. */
+#mspAdminLink[hidden] { display:none!important; }
+#mspAdminBody { display:grid;gap:15px;min-width:0; }
+.msp-admin-top { display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex-wrap:wrap; }
+.msp-admin-top p { flex:1 1 260px;margin:0; }
+.msp-admin-tabs { display:flex;flex-wrap:wrap;gap:7px;padding-bottom:12px;border-bottom:1px solid var(--g2); }
+.msp-admin-tabs .btn { font-size:12px;padding:8px 12px; }
+.msp-admin-filters { margin:12px 0; }
+.msp-admin-list { display:grid;gap:10px; }
+.msp-admin-item { display:grid;gap:8px;padding:14px 16px;border:1px solid var(--g2);border-radius:var(--r);background:#fff;box-shadow:var(--sh);min-width:0; }
+.msp-admin-item .msp-history-header b { color:var(--navy);font-size:13px; }
+.msp-admin-item .msp-history-header span { overflow-wrap:anywhere; }
+.msp-admin-item .msp-admin-message { margin:0;color:var(--g7);font-size:12px;white-space:pre-wrap;overflow-wrap:anywhere; }
+.msp-admin-item details { font-size:12px;color:var(--g5); }
+.msp-admin-item summary { color:var(--navy);font-weight:600;cursor:pointer; }
+.msp-admin-diagnostics { max-height:200px;padding:10px;background:var(--g0);border:1px solid var(--g2);overflow:auto;font-size:11px;white-space:pre-wrap;overflow-wrap:anywhere; }
+.msp-admin-actions { display:flex;align-items:flex-end;gap:8px;flex-wrap:wrap; }
+.msp-admin-actions label { display:grid;gap:5px;font-size:11px;color:var(--g5); }
+.msp-admin-actions select { min-width:170px;padding:8px 10px;border:1px solid var(--g2);border-radius:var(--rs);background:#fff;color:var(--g9);font:inherit;font-size:12px; }
+.msp-admin-actions .btn { font-size:11px;padding:8px 13px; }
+.msp-turnstile-container { min-height:65px;display:flex;align-items:center;max-width:100%;font-size:12px;color:var(--err); }
+@media(max-width:520px) { .msp-admin-top .btn { flex:1; } .msp-admin-tabs .btn { flex:1 1 100px;justify-content:center; } .msp-admin-item { padding:12px; } }

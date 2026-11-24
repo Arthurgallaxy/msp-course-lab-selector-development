@@ -1,0 +1,84 @@
+/* MSP catalogue administration, scoped to the existing catalogue view. */
+#mspCatalogueAdminRoot[hidden], #mspCatalogAdminPanel[hidden], #mspCatFallbackSignin[hidden] { display:none!important; }
+.msp-catalogue-access { display:flex; justify-content:flex-end; margin:0 0 16px; }
+#view-catalogue.msp-catalogue-editing > :not(#mspCatalogueAdminRoot):not(#mspCatFallbackSignin) { display:none!important; }
+#view-catalogue.msp-catalogue-editing .msp-catalogue-access { display:none; }
+#mspCatalogAdminPanel { width:100%; background:#fff; border:1px solid var(--g2); border-radius:var(--r); padding:22px; box-shadow:var(--sh); }
+.msp-cat-top { display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:15px; }
+.msp-cat-eyebrow { color:var(--g4); font-size:10px; font-weight:800; letter-spacing:.11em; text-transform:uppercase; }
+.msp-cat-top h2 { color:var(--navy); font-family:'DM Sans',sans-serif; font-size:22px; margin:3px 0 4px; }
+.msp-cat-top p { color:var(--g5); font-size:12px; }
+#mspCatalogDirty { margin-left:8px; font-size:11px; color:var(--warn); font-weight:650; }
+.msp-cat-actions { display:flex; flex-wrap:wrap; gap:8px; margin:16px 0 10px; }
+.msp-cat-actions .btn { font-size:12px; padding:9px 12px; }
+.msp-cat-version { display:flex; gap:9px; align-items:center; flex-wrap:wrap; padding:10px 12px; background:var(--g0); border-radius:var(--rs); }
+.msp-cat-version label { font-size:11px; font-weight:600; color:var(--g6); }
+.msp-cat-version select { min-width:180px; max-width:270px; padding:7px 9px; background:white; border:1px solid var(--g2); border-radius:5px; }
+.msp-cat-version small { color:var(--g5); font-size:10px; }
+#mspCatalogMessage:not(:empty) { padding:11px 13px; margin:12px 0; border:1px solid var(--inf-bd); background:var(--inf-bg); border-radius:var(--rs); color:var(--inf); font-size:12px; }
+#mspCatalogMessage[data-error="true"] { color:var(--err); background:var(--err-bg); border-color:var(--err-bd); }
+.msp-cat-layout { display:grid; grid-template-columns:minmax(205px,260px) minmax(0,1fr); gap:18px; border-top:1px solid var(--g1); padding-top:16px; }
+.msp-cat-sidebar { min-width:0; border-right:1px solid var(--g2); padding-right:14px; }
+.msp-cat-sidebar > label { display:block; font-size:11px; font-weight:700; color:var(--g7); margin-bottom:5px; }
+.msp-cat-sidebar input[type=search] { width:100%; border:1px solid var(--g2); border-radius:var(--rs); font:inherit; padding:9px 11px; }
+.msp-cat-filters { display:flex; align-items:center; flex-wrap:wrap; gap:8px; margin-top:8px; }
+.msp-cat-filters select { background:white; border:1px solid var(--g2); padding:6px; border-radius:5px; }
+.msp-cat-filters label { display:flex; align-items:center; gap:5px; font-size:11px; color:var(--g6); }
+#mspCatCount { display:block; margin:9px 0; color:var(--g5); font-size:10px; }
+#mspCatList { display:grid; gap:4px; max-height:650px; overflow:auto; padding-right:2px; }
+.msp-cat-item { text-align:left; width:100%; padding:10px; border:1px solid transparent; background:transparent; border-radius:7px; cursor:pointer; display:grid; grid-template-columns:minmax(0,1fr) auto; gap:2px 6px; font:inherit; }
+.msp-cat-item:hover { background:var(--g0); }
+.msp-cat-item.selected { background:var(--sa-bg); border-color:var(--inf-bd); }
+.msp-cat-item strong { font-size:12px; color:var(--navy); }
+.msp-cat-item span { display:block; grid-column:1/-1; line-height:1.35; font-size:11.5px; color:var(--g7); }
+.msp-cat-item small { grid-column:2; grid-row:1; color:var(--g5); font-size:10px; }
+.msp-cat-editor { min-width:0; }
+.msp-cat-editor-head { display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:12px; }
+.msp-cat-editor-head h3 { font-size:17px; color:var(--navy); margin:2px 0 14px; overflow-wrap:anywhere; }
+.msp-cat-danger { padding:7px 10px; border:1px solid var(--err-bd); border-radius:5px; background:var(--err-bg); color:var(--err); font:inherit; font-size:11px; cursor:pointer; }
+.msp-cat-danger:hover { background:#fee2e2; }
+.msp-cat-tabs { display:flex; gap:5px; border-bottom:1px solid var(--g2); margin-bottom:17px; flex-wrap:wrap; }
+.msp-cat-tabs button { padding:9px 13px; border:0; background:transparent; color:var(--g5); font:inherit; font-size:12px; font-weight:600; cursor:pointer; border-bottom:2px solid transparent; }
+.msp-cat-tabs button.active { color:var(--navy); border-bottom-color:var(--navy); }
+.msp-cat-tab-body { display:grid; gap:12px; }
+.msp-cat-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:13px; }
+.msp-cat-field { display:flex; flex-direction:column; gap:4px; min-width:0; margin:2px 0; }
+.msp-cat-field > span, .msp-cat-block-label { font-size:11px; font-weight:650; color:var(--g7); }
+.msp-cat-field > small { color:var(--g5); font-size:10px; }
+.msp-cat-field :is(input,select,textarea) { width:100%; max-width:100%; min-width:0; border:1px solid var(--g2); border-radius:5px; background:#fff; color:var(--g9); padding:8px 10px; font:inherit; font-size:12px; }
+.msp-cat-field input:disabled { background:var(--g1); color:var(--g5); }
+.msp-cat-field textarea { resize:vertical; line-height:1.6; }
+.msp-cat-field :is(input,select,textarea):focus-visible, .msp-cat-item:focus-visible { outline:2px solid var(--navy); outline-offset:2px; }
+.msp-cat-boolean { display:flex; align-items:center; flex-wrap:wrap; gap:16px; padding:8px 0; }
+.msp-cat-check { display:flex; gap:7px; align-items:center; font-size:12px; color:var(--g7); cursor:pointer; }
+.msp-cat-check input { width:15px; height:15px; accent-color:var(--navy); }
+.msp-cat-help, .msp-cat-muted { font-size:11px; line-height:1.65; color:var(--g5); }
+.msp-cat-help code { border:1px solid var(--g2); border-radius:4px; background:var(--g0); padding:2px 4px; }
+.msp-cat-period { border:1px solid var(--g2); border-radius:var(--rs); padding:13px; }
+.msp-cat-period-head { display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; }
+.msp-cat-period-head strong { color:var(--navy); font-size:13px; }
+.msp-cat-period-head .btn { padding:5px 10px; font-size:11px; }
+.msp-cat-offering { border-top:1px solid var(--g1); padding-top:12px; }
+.msp-cat-offering-head { display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap; margin-bottom:10px; }
+.msp-cat-offering-head strong { color:var(--g7); font-size:12px; }
+.msp-cat-days { display:grid; grid-template-columns:repeat(5,minmax(0,1fr)); gap:5px; }
+.msp-cat-days label { display:flex; flex-direction:column; align-items:center; gap:4px; padding:6px 2px; border:1px solid var(--g2); border-radius:5px; cursor:pointer; color:var(--g6); font-size:10px; }
+.msp-cat-days label:has(input:checked) { background:var(--sa-bg); border-color:var(--inf-bd); color:var(--navy); font-weight:650; }
+.msp-cat-days input { accent-color:var(--navy); }
+.msp-cat-advanced { padding-top:10px; border-top:1px solid var(--g2); }
+.msp-cat-advanced summary { color:var(--navy); font-size:12px; font-weight:650; cursor:pointer; margin-bottom:10px; }
+.msp-cat-advanced .msp-cat-field { margin-top:10px; }
+.msp-cat-empty { padding:50px 16px; text-align:center; color:var(--g5); font-size:13px; background:var(--g0); border-radius:var(--r); }
+.msp-cat-signin { text-align:right; margin-bottom:10px; }
+.msp-cat-signin details { display:inline-block; max-width:350px; padding:8px 14px; background:white; border:1px solid var(--g2); border-radius:var(--rs); text-align:left; }
+.msp-cat-signin summary { font-size:12px; font-weight:650; color:var(--navy); cursor:pointer; }
+.msp-cat-signin form { display:grid; gap:10px; margin-top:13px; }
+.msp-cat-signin label { display:grid; font-size:11px; color:var(--g7); }
+.msp-cat-signin input { padding:9px; border:1px solid var(--g2); border-radius:var(--rs); }
+@media(max-width:800px) { .msp-cat-layout { grid-template-columns:1fr; } .msp-cat-sidebar { border-right:0; padding-right:0; border-bottom:1px solid var(--g2); padding-bottom:15px; } #mspCatList { display:flex; gap:5px; overflow-x:auto; max-height:110px; } .msp-cat-item { min-width:155px; max-width:185px; } .msp-cat-grid { grid-template-columns:1fr; } .msp-cat-days { grid-template-columns:repeat(5,minmax(0,1fr)); } #mspCatalogAdminPanel { padding:14px; } }
+@media(max-width:420px) { .msp-cat-days { grid-template-columns:repeat(3,minmax(0,1fr)); } .msp-cat-actions .btn { flex:1; } }
+.msp-cat-equiv { display:grid; grid-template-columns:minmax(0,1fr) auto minmax(0,1fr) auto; align-items:center; gap:7px; margin:6px 0; }
+.msp-cat-equiv input { width:100%; min-width:0; border:1px solid var(--g2); border-radius:5px; padding:8px; font:inherit; font-size:11px; }
+.msp-cat-equiv span { font-size:11px; color:var(--g5); }
+.msp-cat-period h4 { color:var(--navy); margin-bottom:9px; }
+@media(max-width:520px){ .msp-cat-equiv { grid-template-columns:1fr auto 1fr; } .msp-cat-equiv .msp-cat-danger { grid-column:1/-1; justify-self:end; } }
